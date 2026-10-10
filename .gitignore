@@ -1,0 +1,5 @@
+# Fichiers propres à chaque poste
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
