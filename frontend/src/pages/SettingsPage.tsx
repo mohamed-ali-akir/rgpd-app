@@ -29,7 +29,7 @@ export function SettingsPage() {
             </a>
           </div>
         </Card>
-        <Card title="Supprimer mon compte" className="ring-red-200">
+        <Card title="Supprimer mon compte" tone="danger">
           <DeleteAccount />
         </Card>
       </div>

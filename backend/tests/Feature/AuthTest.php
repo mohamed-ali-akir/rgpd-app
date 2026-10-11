@@ -102,3 +102,13 @@ it('limite les tentatives de connexion avec un message en français', function (
         ->assertTooManyRequests()
         ->assertJsonPath('message', 'Trop de tentatives. Réessayez dans quelques minutes.');
 });
+
+it('compte les tentatives séparément pour chaque formulaire', function () {
+    foreach (range(1, 7) as $attempt) {
+        fromSpa()->postJson('/api/login', ['email' => 'x@exemple.test', 'password' => 'mauvais']);
+    }
+
+    // La connexion est bloquée, mais pas le formulaire « mot de passe oublié ».
+    fromSpa()->postJson('/api/login', ['email' => 'x@exemple.test', 'password' => 'mauvais'])->assertTooManyRequests();
+    fromSpa()->postJson('/api/forgot-password', ['email' => 'x@exemple.test'])->assertOk();
+});

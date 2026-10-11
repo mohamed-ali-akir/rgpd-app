@@ -5,7 +5,10 @@ namespace App\Providers;
 use App\Services\Mail\FakeSender;
 use App\Services\Mail\GmailSender;
 use App\Services\Mail\MailSender;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -24,5 +27,13 @@ class AppServiceProvider extends ServiceProvider
     {
         // Les API Resources renvoient l'objet directement, sans l'envelopper dans { "data": ... }.
         JsonResource::withoutWrapping();
+
+        /*
+         * Formulaires accessibles sans être connecté (inscription, connexion, mot de passe oublié) :
+         * 6 essais par minute, comptés séparément pour CHAQUE formulaire et chaque adresse IP.
+         * Avec "throttle:6,1", le compteur était commun aux trois routes : 6 échecs de connexion
+         * bloquaient aussi le formulaire « mot de passe oublié ».
+         */
+        RateLimiter::for('guest-forms', fn (Request $request) => Limit::perMinute(6)->by($request->path().'|'.$request->ip()));
     }
 }

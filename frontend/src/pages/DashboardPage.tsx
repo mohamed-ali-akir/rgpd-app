@@ -49,7 +49,7 @@ export function DashboardPage() {
         <div className="space-y-6">
           {/* Les demandes en retard en premier : ce sont celles qui demandent une action. */}
           {dashboard.data.overdue.length > 0 && (
-            <Card title="Délai dépassé : à relancer ou à signaler à la CNIL" className="ring-amber-300">
+            <Card title="Délai dépassé : à relancer ou à signaler à la CNIL" tone="warning">
               <RequestList requests={dashboard.data.overdue} emptyText="" />
             </Card>
           )}
@@ -72,7 +72,7 @@ export function DashboardPage() {
           <Card
             title="Mes demandes"
             actions={
-              <div className="w-48">
+              <div className="w-full sm:w-48">
                 <SelectField
                   label="Filtrer par statut"
                   value={status}

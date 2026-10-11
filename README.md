@@ -10,6 +10,8 @@ d'un mois (art. 12.3) et prépare si besoin un dossier de plainte pour la CNIL (
 
 Projet réalisé dans le cadre du BTS SIO option SLAM (épreuve E6).
 
+![Démonstration : URL, organisme détecté, lettre générée, envoi, délai dépassé, relance et dossier de plainte CNIL](docs/demo.gif)
+
 ## Fonctionnalités (V1)
 
 - Inscription, connexion (Laravel Sanctum en mode SPA), vérification de l'adresse e-mail, mot de passe oublié
@@ -29,7 +31,7 @@ Projet réalisé dans le cadre du BTS SIO option SLAM (épreuve E6).
 | Back | Laravel 13 (API REST), Sanctum (SPA : cookies + CSRF), Socialite (OAuth Google), dompdf |
 | Données | MySQL en production, SQLite en développement et en mémoire pour les tests |
 | Asynchrone | File d'attente Laravel (driver `database`), planificateur Laravel (cron) |
-| Tests | Pest (back, 127 tests), Vitest + React Testing Library (front, 25 tests) |
+| Tests | Pest (back, 128 tests), Vitest + React Testing Library (front, 25 tests) |
 | CI | GitHub Actions : Pint, Pest, tsc, ESLint, Vitest, build Vite |
 
 ## Architecture
@@ -88,7 +90,7 @@ En développement, les e-mails de l'application (vérification, alertes de déla
 ### Tests
 
 ```bash
-cd backend; vendor/bin/pest           # 127 tests
+cd backend; vendor/bin/pest           # 128 tests
 cd frontend; npm test                 # 25 tests
 cd frontend; npm run typecheck; npm run lint; npm run build
 ```

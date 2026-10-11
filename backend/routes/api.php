@@ -15,8 +15,8 @@ use Illuminate\Support\Facades\Route;
 // Toutes ces routes sont préfixées par /api (voir bootstrap/app.php).
 
 // --- Invités ---------------------------------------------------------------
-// throttle:6,1 = 6 tentatives par minute : limite les attaques par force brute.
-Route::middleware('throttle:6,1')->group(function () {
+// Limiteur "guest-forms" (AppServiceProvider) : 6 essais par minute et par formulaire, contre la force brute.
+Route::middleware('throttle:guest-forms')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/forgot-password', [PasswordResetController::class, 'sendLink']);

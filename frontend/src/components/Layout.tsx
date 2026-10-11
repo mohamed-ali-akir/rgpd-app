@@ -28,9 +28,17 @@ export function Layout() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <span className="font-bold text-indigo-700">Efface-moi</span>
-          <nav className="flex flex-wrap gap-1" aria-label="Navigation principale">
+        {/*
+          Sur mobile : logo et déconnexion sur la 1re ligne, menu sur la 2e (défilement horizontal si besoin).
+          À partir de "sm" (640 px) : tout sur une ligne. Les classes order-* changent l'ordre d'affichage
+          sans changer l'ordre du HTML.
+        */}
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3">
+          <span className="order-1 font-bold text-indigo-700">Efface-moi</span>
+          <nav
+            className="order-3 -mx-1 flex w-full gap-1 overflow-x-auto px-1 sm:order-2 sm:mx-0 sm:w-auto sm:px-0"
+            aria-label="Navigation principale"
+          >
             {NAV.map((item) => (
               // NavLink sait si son lien correspond à la page affichée : on change alors le style.
               <NavLink
@@ -38,14 +46,14 @@ export function Layout() {
                 to={item.to}
                 end={item.end}
                 className={({ isActive }) =>
-                  `rounded-md px-3 py-1.5 text-sm font-medium ${isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100'}`
+                  `shrink-0 rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap ${isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100'}`
                 }
               >
                 {item.label}
               </NavLink>
             ))}
           </nav>
-          <div className="flex items-center gap-2 text-sm text-slate-600">
+          <div className="order-2 flex items-center gap-2 text-sm text-slate-600 sm:order-3">
             <span className="hidden sm:inline">{user?.name}</span>
             <Button variant="ghost" loading={logout.isPending} onClick={() => logout.mutate(undefined, { onSuccess: () => navigate('/login') })}>
               Se déconnecter
@@ -54,7 +62,7 @@ export function Layout() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:py-8">
         {user && !user.email_verified && (
           <div className="mb-6">
             <Alert tone="warning" title="Vérifiez votre adresse e-mail">
