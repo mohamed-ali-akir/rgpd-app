@@ -1,0 +1,5 @@
+# Fichiers exécutés sur le serveur Linux : toujours en fins de ligne Unix (LF), même extraits sous Windows.
+*.sh text eol=lf
+deploy/crontab text eol=lf
+deploy/*.service text eol=lf
+deploy/nginx.conf text eol=lf
