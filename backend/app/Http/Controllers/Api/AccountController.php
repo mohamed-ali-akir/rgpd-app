@@ -70,6 +70,8 @@ class AccountController extends Controller
 
         DB::transaction(function () use ($user) {
             DB::table('sessions')->where('user_id', $user->id)->delete();
+            // Cette table n'a pas de clé étrangère (elle est indexée par e-mail) : pas de cascade automatique.
+            DB::table('password_reset_tokens')->where('email', $user->email)->delete();
             $user->delete();
         });
 

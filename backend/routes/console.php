@@ -11,3 +11,6 @@ Schedule::command('requests:check-deadlines')->dailyAt('08:00')->withoutOverlapp
 // Conservation limitée : suppression des demandes clôturées depuis plus de 12 mois
 // (voir ErasureRequest::prunable()).
 Schedule::command('model:prune')->daily();
+
+// Supprime les jetons de réinitialisation de mot de passe expirés (ils contiennent l'adresse e-mail).
+Schedule::command('auth:clear-resets')->daily();

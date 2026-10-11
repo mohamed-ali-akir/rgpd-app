@@ -47,3 +47,23 @@ export async function logout(): Promise<void> {
 export async function resendVerificationEmail(): Promise<void> {
   await api.post('/email/verification-notification')
 }
+
+export interface ResetPasswordInput {
+  token: string
+  email: string
+  password: string
+  password_confirmation: string
+}
+
+/** Demande l'envoi du lien. La réponse est la même que l'adresse ait un compte ou non. */
+export async function forgotPassword(email: string): Promise<string> {
+  await ensureCsrfCookie()
+  const { data } = await api.post<{ message: string }>('/forgot-password', { email })
+  return data.message
+}
+
+export async function resetPassword(input: ResetPasswordInput): Promise<string> {
+  await ensureCsrfCookie()
+  const { data } = await api.post<{ message: string }>('/reset-password', input)
+  return data.message
+}

@@ -12,7 +12,7 @@ Projet réalisé dans le cadre du BTS SIO option SLAM (épreuve E6).
 
 ## Fonctionnalités (V1)
 
-- Inscription, connexion (Laravel Sanctum en mode SPA), vérification de l'adresse e-mail
+- Inscription, connexion (Laravel Sanctum en mode SPA), vérification de l'adresse e-mail, mot de passe oublié
 - Assistant en 4 étapes : URL → organisme (détecté, recherché ou créé) → données concernées → lettre modifiable
 - Fondements juridiques suggérés et avertissements (registres légaux, presse, moteurs de recherche) par des **règles fixes, sans IA**
 - Envoi depuis le Gmail de l'utilisateur (scope `gmail.send` uniquement) **ou** envoi manuel puis confirmation
@@ -29,7 +29,7 @@ Projet réalisé dans le cadre du BTS SIO option SLAM (épreuve E6).
 | Back | Laravel 13 (API REST), Sanctum (SPA : cookies + CSRF), Socialite (OAuth Google), dompdf |
 | Données | MySQL en production, SQLite en développement et en mémoire pour les tests |
 | Asynchrone | File d'attente Laravel (driver `database`), planificateur Laravel (cron) |
-| Tests | Pest (back, 120 tests), Vitest + React Testing Library (front, 21 tests) |
+| Tests | Pest (back, 127 tests), Vitest + React Testing Library (front, 25 tests) |
 | CI | GitHub Actions : Pint, Pest, tsc, ESLint, Vitest, build Vite |
 
 ## Architecture
@@ -88,8 +88,8 @@ En développement, les e-mails de l'application (vérification, alertes de déla
 ### Tests
 
 ```bash
-cd backend; vendor/bin/pest           # 120 tests
-cd frontend; npm test                 # 21 tests
+cd backend; vendor/bin/pest           # 127 tests
+cd frontend; npm test                 # 25 tests
 cd frontend; npm run typecheck; npm run lint; npm run build
 ```
 
@@ -147,7 +147,8 @@ L'application applique à ses propres utilisateurs les principes qu'elle les aid
 - **Effacement** : la suppression du compte supprime en cascade profil, demandes, historique et compte Google, et révoque
   le jeton chez Google.
 - **Accès et portabilité** : export JSON de toutes ses données (art. 15 et 20).
-- **Conservation limitée** : demandes clôturées supprimées automatiquement 12 mois après leur clôture.
+- **Conservation limitée** : demandes clôturées supprimées automatiquement 12 mois après leur clôture ; jetons de
+  réinitialisation du mot de passe expirés purgés chaque jour (`auth:clear-resets`).
 - **Pas de données personnelles dans les journaux** : les messages d'erreur et les sorties de commandes n'en contiennent
   pas, et la file d'attente ne stocke que l'identifiant de la demande.
 - Une page « Ce que nous faisons de vos données » est accessible dans l'application.
@@ -165,11 +166,11 @@ L'application applique à ses propres utilisateurs les principes qu'elle les aid
 | `mark-sent` | Accepte une date d'envoi passée | Un courrier peut avoir été posté avant la saisie |
 | Avertissement `unverified_contact` | Ajouté à LegalAdvisor | Les contacts du seeder doivent être vérifiés à la main |
 | Profil créé à l'inscription | Prénom et nom demandés à l'inscription | Les lettres en ont besoin dès la première demande |
+| Mot de passe oublié | Ajouté (`POST /api/forgot-password`, `POST /api/reset-password`) | Indispensable pour une vraie mise en ligne |
 | Nom de l'application | « Efface-moi » (provisoire) | À remplacer librement (`APP_NAME`, `index.html`) |
 
 ## Limites connues et pistes pour la V2
 
-- Pas de réinitialisation du mot de passe (absente du cahier des charges, à ajouter avant une vraie mise en ligne).
 - Les organismes ajoutés par un utilisateur sont visibles par tous : un contact erroné pourrait être réutilisé
   (ils sont signalés « Ajouté par un utilisateur » ; une modération serait nécessaire à plus grande échelle).
 - V2 prévue : recherche automatique des pages qui mentionnent l'utilisateur.

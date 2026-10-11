@@ -13,6 +13,8 @@ export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const loginMutation = useLogin()
+  // État transmis par la page précédente : page demandée avant la connexion, ou message de succès.
+  const state = location.state as { from?: string; message?: string } | null
 
   /*
    * react-hook-form gère l'état du formulaire (valeurs, erreurs, envoi en cours)
@@ -29,8 +31,7 @@ export function LoginPage() {
   const onSubmit = (values: LoginValues) =>
     loginMutation.mutate(values, {
       onSuccess: () => {
-        const from = (location.state as { from?: string } | null)?.from ?? '/'
-        navigate(from, { replace: true })
+        navigate(state?.from ?? '/', { replace: true })
       },
       onError: (error) => applyServerErrors(error, setError),
     })
@@ -39,9 +40,15 @@ export function LoginPage() {
     <AuthLayout title="Connexion" footer={<>Pas encore de compte ? <Link to="/register" className="font-semibold text-indigo-600 hover:underline">Créer un compte</Link></>}>
       {/* noValidate : on laisse zod valider (messages en français), pas le navigateur. */}
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+        {state?.message && !loginMutation.isError && <Alert tone="success">{state.message}</Alert>}
         {loginMutation.isError && !errors.email && <Alert tone="error">{errorMessage(loginMutation.error)}</Alert>}
         <InputField label="Adresse e-mail" type="email" autoComplete="email" error={errors.email?.message} {...register('email')} />
         <InputField label="Mot de passe" type="password" autoComplete="current-password" error={errors.password?.message} {...register('password')} />
+        <div className="text-right">
+          <Link to="/forgot-password" className="text-sm text-indigo-600 hover:underline">
+            Mot de passe oublié ?
+          </Link>
+        </div>
         <Button type="submit" loading={loginMutation.isPending} className="w-full">
           Se connecter
         </Button>

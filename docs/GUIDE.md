@@ -31,7 +31,22 @@ Conseil : pour chaque fichier, essaie d'expliquer à voix haute ce que fait chaq
 - *`throttle:6,1`* : 6 tentatives par minute (anti force brute).
 - *URL signée* (vérification d'e-mail) : Laravel ajoute une signature HMAC calculée avec `APP_KEY` ; modifier l'URL invalide la signature.
 
+**Mot de passe oublié** (ajouté après la V1)
+- Fichiers : `PasswordResetController.php`, `ForgotPasswordRequest.php`, `ResetPasswordRequest.php`,
+  `app/Notifications/ResetPassword.php`, `User::sendPasswordResetNotification()`, `lang/fr/passwords.php`,
+  `tests/Feature/PasswordResetTest.php` ; côté front `pages/ForgotPasswordPage.tsx`, `pages/ResetPasswordPage.tsx` et son test.
+- Le *password broker* de Laravel (`Password::sendResetLink`, `Password::reset`) crée un jeton aléatoire, n'en stocke
+  que le **haché** dans `password_reset_tokens`, l'invalide après usage et le refuse après 60 minutes.
+- Le lien de l'e-mail mène à la page React `/reset-password/{token}?email=...`, qui renvoie jeton, e-mail et nouveau
+  mot de passe à l'API.
+- *Anti-énumération* : `forgot-password` répond la même chose que l'adresse ait un compte ou non.
+- Après le changement, **toutes les sessions** de l'utilisateur sont supprimées (table `sessions`).
+- Les jetons sont supprimés avec le compte (pas de clé étrangère, la table est indexée par e-mail) et purgés chaque jour
+  par `auth:clear-resets`.
+
 **Questions possibles**
+- *Pourquoi répondre pareil pour une adresse inconnue ?* Sinon le formulaire permettrait de vérifier qui a un compte.
+- *Pourquoi fermer les autres sessions ?* Si quelqu'un utilisait le compte avec l'ancien mot de passe, il perd l'accès.
 - *Pourquoi pas un jeton JWT dans le localStorage ?* Un script injecté (XSS) peut lire le localStorage, pas un cookie
   `HttpOnly`. Et on n'a pas besoin de jetons puisque front et API sont sur le même domaine.
 - *Que se passe-t-il si le jeton CSRF expire ?* L'API répond 419 ; l'intercepteur d'axios (`client.ts`) redemande un

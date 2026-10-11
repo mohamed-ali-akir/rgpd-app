@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ErasureRequestActionController;
 use App\Http\Controllers\Api\ErasureRequestController;
 use App\Http\Controllers\Api\GoogleAccountController;
 use App\Http\Controllers\Api\OrganizationController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('throttle:6,1')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/forgot-password', [PasswordResetController::class, 'sendLink']);
+    Route::post('/reset-password', [PasswordResetController::class, 'reset']);
 });
 
 Route::get('/email/verify/{user}/{hash}', [EmailVerificationController::class, 'verify'])
