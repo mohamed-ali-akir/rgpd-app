@@ -34,6 +34,49 @@ jobs:
       - name: Tests (SQLite en mémoire)
         run: vendor/bin/pest
 
+  # Mêmes tests sur MySQL, la base de production (en local et dans le job précédent : SQLite en mémoire).
+  backend-mysql:
+    name: Backend (Pest sur MySQL)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: rgpd_test
+          MYSQL_ROOT_PASSWORD: root
+        ports: ['3306:3306']
+        options: --health-cmd="mysqladmin ping -proot" --health-interval=5s --health-timeout=5s --health-retries=20
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # Les variables d'environnement réelles l'emportent sur les <env> de phpunit.xml.
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: rgpd_test
+      DB_USERNAME: root
+      DB_PASSWORD: root
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_mysql, gd
+          coverage: none
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('backend/composer.lock') }}
+
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      - name: Tests (MySQL 8.4)
+        run: vendor/bin/pest
+
   frontend:
     name: Frontend (tsc, eslint, vitest, build)
     runs-on: ubuntu-latest
