@@ -68,7 +68,7 @@ class LetterGenerator
     private function formatDate(DateTimeInterface $date): string
     {
         // "10 octobre 2026"
-        return Carbon::instance($date)->locale('fr')->isoFormat('D MMMM YYYY');
+        return Carbon::instance($date)->timezone(config('app.display_timezone'))->locale('fr')->isoFormat('D MMMM YYYY');
     }
 
     /**

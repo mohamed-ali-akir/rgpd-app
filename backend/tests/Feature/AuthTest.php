@@ -86,3 +86,19 @@ it('refuse un lien de vérification falsifié', function () {
 
     expect($user->fresh()->hasVerifiedEmail())->toBeFalse();
 });
+
+it('renvoie les erreurs de validation en français', function () {
+    fromSpa()->postJson('/api/register', [])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.first_name.0', 'Le champ prénom est obligatoire.');
+});
+
+it('limite les tentatives de connexion avec un message en français', function () {
+    foreach (range(1, 6) as $attempt) {
+        fromSpa()->postJson('/api/login', ['email' => 'x@exemple.test', 'password' => 'mauvais']);
+    }
+
+    fromSpa()->postJson('/api/login', ['email' => 'x@exemple.test', 'password' => 'mauvais'])
+        ->assertTooManyRequests()
+        ->assertJsonPath('message', 'Trop de tentatives. Réessayez dans quelques minutes.');
+});

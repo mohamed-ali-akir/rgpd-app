@@ -19,7 +19,7 @@
 </head>
 <body>
     <h1>Dossier de réclamation auprès de la CNIL</h1>
-    <p class="muted">Article 77 du RGPD — dossier préparé le {{ $generatedAt->locale('fr')->isoFormat('D MMMM YYYY') }}</p>
+    <p class="muted">Article 77 du RGPD — dossier préparé le {{ $generatedAt->timezone(config('app.display_timezone'))->locale('fr')->isoFormat('D MMMM YYYY') }}</p>
 
     <div class="notice">
         Ce document rassemble les éléments de votre demande. Il ne constitue pas une plainte :
@@ -56,8 +56,8 @@
             @endif
             Effacement : {{ $request->legal_grounds->map(fn ($g) => $g->article())->implode(', ') }}
         </td></tr>
-        <tr><th>Envoyée le</th><td>{{ $request->sent_at?->locale('fr')->isoFormat('D MMMM YYYY') ?? '—' }} ({{ $request->channel->value === 'gmail' ? 'e-mail' : 'envoi par l\'utilisateur' }})</td></tr>
-        <tr><th>Échéance de réponse</th><td>{{ $request->due_at?->locale('fr')->isoFormat('D MMMM YYYY') ?? '—' }} (art. 12.3)</td></tr>
+        <tr><th>Envoyée le</th><td>{{ $request->sent_at?->timezone(config('app.display_timezone'))->locale('fr')->isoFormat('D MMMM YYYY') ?? '—' }} ({{ $request->channel->value === 'gmail' ? 'e-mail' : 'envoi par l\'utilisateur' }})</td></tr>
+        <tr><th>Échéance de réponse</th><td>{{ $request->due_at?->timezone(config('app.display_timezone'))->locale('fr')->isoFormat('D MMMM YYYY') ?? '—' }} (art. 12.3)</td></tr>
         <tr><th>Situation actuelle</th><td>{{ $request->events->contains('type', \App\Enums\EventType::ResponseRefused) ? 'Demande refusée par l\'organisme' : 'Aucune réponse dans le délai légal' }}</td></tr>
     </table>
 
@@ -65,7 +65,7 @@
     <table class="timeline">
         @foreach ($request->events as $event)
             <tr>
-                <td style="width: 28%">{{ $event->occurred_at->locale('fr')->isoFormat('D MMMM YYYY, HH:mm') }}</td>
+                <td style="width: 28%">{{ $event->occurred_at->timezone(config('app.display_timezone'))->locale('fr')->isoFormat('D MMMM YYYY, HH:mm') }}</td>
                 <td>
                     {{ $event->type->label() }}
                     @if (! empty($event->payload['note']))

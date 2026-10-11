@@ -4,6 +4,7 @@ use App\Exceptions\InvalidTransitionException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -30,4 +31,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(fn (InvalidTransitionException $e) => response()->json([
             'message' => $e->getMessage(),
         ], 409));
+
+        // Message du limiteur de requêtes (throttle) en français.
+        $exceptions->render(fn (ThrottleRequestsException $e) => response()->json([
+            'message' => 'Trop de tentatives. Réessayez dans quelques minutes.',
+        ], 429, $e->getHeaders()));
     })->create();

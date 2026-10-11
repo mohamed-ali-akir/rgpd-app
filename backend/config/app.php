@@ -67,6 +67,10 @@ return [
 
     'timezone' => 'UTC',
 
+    // Les dates sont stockées en UTC ; elles sont affichées à l'utilisateur dans ce fuseau
+    // (lettres, dossier PDF). Le front, lui, utilise le fuseau du navigateur.
+    'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Europe/Paris'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
