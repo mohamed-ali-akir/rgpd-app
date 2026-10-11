@@ -31,8 +31,8 @@ Projet réalisé dans le cadre du BTS SIO option SLAM (épreuve E6).
 | Back | Laravel 13 (API REST), Sanctum (SPA : cookies + CSRF), Socialite (OAuth Google), dompdf |
 | Données | MySQL en production, SQLite en développement et en mémoire pour les tests |
 | Asynchrone | File d'attente Laravel (driver `database`), planificateur Laravel (cron) |
-| Tests | Pest (back, 128 tests), Vitest + React Testing Library (front, 25 tests) |
-| CI | GitHub Actions : Pint, Pest, tsc, ESLint, Vitest, build Vite |
+| Tests | Pest (back, 141 tests), Vitest + React Testing Library (front, 25 tests) |
+| CI | GitHub Actions : Pint, Pest (SQLite et MySQL 8.4), tsc, ESLint, Vitest, build Vite |
 
 ## Architecture
 
@@ -90,7 +90,7 @@ En développement, les e-mails de l'application (vérification, alertes de déla
 ### Tests
 
 ```bash
-cd backend; vendor/bin/pest           # 128 tests
+cd backend; vendor/bin/pest           # 141 tests
 cd frontend; npm test                 # 25 tests
 cd frontend; npm run typecheck; npm run lint; npm run build
 ```
@@ -120,6 +120,10 @@ Gmail est supprimée et l'utilisateur est invité à la refaire (ou à passer en
 
 ## Mise en production
 
+Le guide pas à pas (VPS Ubuntu, Nginx, PHP-FPM, MySQL, HTTPS, worker, cron, sauvegardes) est dans
+[deploy/README.md](deploy/README.md), avec le modèle [backend/.env.production.example](backend/.env.production.example).
+En résumé :
+
 - Nginx : voir [deploy/nginx.conf](deploy/nginx.conf) (SPA à la racine, `/api` et `/sanctum` vers PHP-FPM).
 - `.env` de production : `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://votre-domaine`,
   `SANCTUM_STATEFUL_DOMAINS=votre-domaine`, `SESSION_SECURE_COOKIE=true`, `DB_CONNECTION=mysql` (+ identifiants),
@@ -136,6 +140,9 @@ Gmail est supprimée et l'utilisateur est invité à la refaire (ou à passer en
 le contact sur sa politique de confidentialité officielle, le renseigner dans le seeder avec la date de vérification
 (`'verified' => 'AAAA-MM-JJ'`), puis relancer le seeder. Tant qu'un organisme n'est pas vérifié, l'application
 affiche « coordonnées non vérifiées » et propose l'envoi manuel.
+
+Un point de départ pour cette vérification, avec les sources et un niveau de confiance pour chaque contact, se
+trouve dans [docs/contacts-a-verifier.md](docs/contacts-a-verifier.md).
 
 ## Ce que nous faisons de vos données (privacy by design)
 
