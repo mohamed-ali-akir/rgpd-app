@@ -1,5 +1,7 @@
 # Efface-moi — exercer son droit à l'effacement (RGPD)
 
+[![CI](https://github.com/mohamed-ali-akir/rgpd-app/actions/workflows/ci.yml/badge.svg)](https://github.com/mohamed-ali-akir/rgpd-app/actions/workflows/ci.yml)
+
 Application web full stack qui aide une personne à obtenir la suppression de ses données personnelles publiées en ligne :
 elle colle l'adresse de la page, l'application identifie l'organisme responsable, génère une demande d'effacement
 (art. 17) et d'opposition (art. 21), l'envoie depuis son Gmail ou l'aide à l'envoyer elle-même, suit le délai légal
