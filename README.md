@@ -56,6 +56,9 @@ Le guide détaillé, fichier par fichier, est dans [docs/GUIDE.md](docs/GUIDE.md
 
 Prérequis : PHP 8.4 + Composer (par exemple via [Laravel Herd](https://herd.laravel.com)), Node.js 22+.
 
+Les commandes sont à lancer depuis la racine du projet (`rgpd-app`). Elles utilisent `;` et non `&&`, que
+Windows PowerShell 5.1 ne reconnaît pas.
+
 ```bash
 # Backend
 cd backend
@@ -66,7 +69,7 @@ php artisan migrate --seed      # crée database/database.sqlite + organismes + 
 php artisan serve               # http://127.0.0.1:8000
 
 # Dans un 2e terminal : le worker qui exécute les envois Gmail
-cd backend && php artisan queue:work
+cd backend; php artisan queue:work
 
 # Dans un 3e terminal : le front
 cd frontend
@@ -85,15 +88,15 @@ En développement, les e-mails de l'application (vérification, alertes de déla
 ### Tests
 
 ```bash
-cd backend && vendor/bin/pest          # 120 tests
-cd frontend && npm test                # 21 tests
-cd frontend && npm run typecheck && npm run lint && npm run build
+cd backend; vendor/bin/pest           # 120 tests
+cd frontend; npm test                 # 21 tests
+cd frontend; npm run typecheck; npm run lint; npm run build
 ```
 
 ### Simuler un délai dépassé
 
 ```bash
-cd backend && php artisan requests:check-deadlines
+cd backend; php artisan requests:check-deadlines
 ```
 
 ## Configurer Gmail (OAuth Google)
