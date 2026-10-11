@@ -1,0 +1,21 @@
+# Worker de la file d'attente (envois Gmail, notifications), relancé automatiquement par systemd.
+# Installation :
+#   sudo cp deploy/rgpd-queue.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now rgpd-queue
+# Journal : journalctl -u rgpd-queue -f
+
+[Unit]
+Description=Efface-moi : worker de la file d'attente Laravel
+After=network.target mysql.service
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/rgpd-app/backend
+# --max-time : le worker redémarre toutes les heures (libère la mémoire) ; systemd le relance.
+ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

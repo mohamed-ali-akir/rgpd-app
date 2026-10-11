@@ -1,0 +1,4 @@
+# Une seule ligne de cron : Laravel décide ensuite quoi lancer (routes/console.php) :
+# vérification des délais à 8 h, purge des demandes clôturées depuis 12 mois, purge des jetons expirés.
+# Installation : sudo crontab -u www-data deploy/crontab
+* * * * * cd /var/www/rgpd-app/backend && php artisan schedule:run >> /dev/null 2>&1

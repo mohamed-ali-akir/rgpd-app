@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\Schedule;
 // et Laravel exécute les tâches ci-dessous au bon moment.
 
 // Vérification quotidienne des délais légaux (art. 12.3).
-Schedule::command('requests:check-deadlines')->dailyAt('08:00')->withoutOverlapping();
+// L'application tourne en UTC : on précise le fuseau pour que "8 h" soit 8 h à Paris.
+Schedule::command('requests:check-deadlines')->dailyAt('08:00')->timezone(config('app.display_timezone'))->withoutOverlapping();
 
 // Conservation limitée : suppression des demandes clôturées depuis plus de 12 mois
 // (voir ErasureRequest::prunable()).
