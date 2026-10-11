@@ -13,6 +13,10 @@ export function errorMessage(error: unknown): string {
   if (error.response.status === 401) {
     return 'Votre session a expiré. Reconnectez-vous.'
   }
+  // 502/503/504 : le proxy (Vite en dev, Nginx en prod) n'a pas pu joindre Laravel.
+  if ([502, 503, 504].includes(error.response.status)) {
+    return 'Le serveur ne répond pas pour le moment. Réessayez dans quelques instants.'
+  }
   return error.response.data?.message || `Erreur ${error.response.status}.`
 }
 
