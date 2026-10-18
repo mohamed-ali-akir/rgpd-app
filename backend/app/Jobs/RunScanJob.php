@@ -25,6 +25,9 @@ class RunScanJob implements ShouldBeUnique, ShouldQueue
 
     public int $timeout = 600;
 
+    /** Scan ou compte supprimé avant le passage du worker : le job est abandonné sans erreur. */
+    public bool $deleteWhenMissingModels = true;
+
     public function __construct(public Scan $scan) {}
 
     public function uniqueId(): string
