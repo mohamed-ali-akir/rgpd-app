@@ -18,6 +18,8 @@ class ErasureRequestResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'kind' => $this->kind,
+            'details' => $this->details,
             'url' => $this->url,
             'status' => $this->status,
             'channel' => $this->channel,
@@ -33,7 +35,7 @@ class ErasureRequestResource extends JsonResource
             // Les champs suivants ne sont calculés que pour la page de détail
             // (quand l'historique est chargé), pour éviter des requêtes en trop dans les listes.
             'events' => RequestEventResource::collection($this->whenLoaded('events')),
-            'warnings' => $this->whenLoaded('events', fn () => app(LegalAdvisor::class)->warnings($this->organization)),
+            'warnings' => $this->whenLoaded('events', fn () => app(LegalAdvisor::class)->warnings($this->organization, $this->kind)),
             'available_actions' => $this->whenLoaded('events', fn () => $this->availableActions()),
             'response_outcomes' => $this->whenLoaded('events', fn () => $this->responseOutcomes()),
             // Texte de relance, affiché quand le délai est dépassé (à copier si canal manuel).

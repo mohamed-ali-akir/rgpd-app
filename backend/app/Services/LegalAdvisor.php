@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\Channel;
 use App\Enums\LegalGround;
 use App\Enums\OrganizationCategory;
+use App\Enums\RequestKind;
 use App\Models\Organization;
 
 /**
@@ -15,7 +16,25 @@ use App\Models\Organization;
  */
 class LegalAdvisor
 {
-    public function advise(Organization $organization, bool $selfPublished = false, bool $hasAccount = false): LegalAdvice
+    public function advise(
+        Organization $organization,
+        bool $selfPublished = false,
+        bool $hasAccount = false,
+        RequestKind $kind = RequestKind::Erasure,
+    ): LegalAdvice {
+        return new LegalAdvice(
+            legalGrounds: $kind === RequestKind::Erasure ? $this->erasureGrounds($selfPublished, $hasAccount) : [],
+            warnings: $this->warnings($organization, $kind),
+            suggestedChannel: $this->suggestedChannel($organization),
+        );
+    }
+
+    /**
+     * Les motifs de l'article 17.1 ne concernent que l'effacement.
+     *
+     * @return list<LegalGround>
+     */
+    private function erasureGrounds(bool $selfPublished, bool $hasAccount): array
     {
         // Par défaut : opposition (art. 21) + effacement (art. 17.1.c).
         $grounds = [LegalGround::Objection];
@@ -25,21 +44,18 @@ class LegalAdvisor
             $grounds[] = LegalGround::ConsentWithdrawn;
         }
 
-        return new LegalAdvice(
-            legalGrounds: $grounds,
-            warnings: $this->warnings($organization),
-            suggestedChannel: $this->suggestedChannel($organization),
-        );
+        return $grounds;
     }
 
     /**
-     * Ne dépend que de l'organisme : recalculé à chaque affichage, donc jamais stocké.
+     * Ne dépend que de l'organisme et du droit exercé : recalculé à chaque affichage, donc jamais stocké.
      *
      * @return list<array{code: string, message: string}>
      */
-    public function warnings(Organization $organization): array
+    public function warnings(Organization $organization, RequestKind $kind = RequestKind::Erasure): array
     {
-        $warnings = match ($organization->category) {
+        // Les exceptions de l'art. 17.3 et le déréférencement ne concernent que l'effacement.
+        $warnings = $kind !== RequestKind::Erasure ? [] : match ($organization->category) {
             OrganizationCategory::LegalRegistry => [[
                 'code' => 'legal_publication',
                 'message' => 'Publication légale : un refus est probable (exception de l\'art. 17.3.b, obligation légale de publication).',

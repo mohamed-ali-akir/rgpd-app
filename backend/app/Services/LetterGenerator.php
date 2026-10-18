@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\DataType;
+use App\Enums\RequestKind;
 use App\Services\Letters\Letter;
 use App\Services\Letters\LetterData;
 use DateTimeInterface;
@@ -17,22 +18,41 @@ use Illuminate\Support\Carbon;
  */
 class LetterGenerator
 {
+    /**
+     * Lettre initiale, selon le droit exercé (effacement, accès, rectification, limitation).
+     */
+    public function initial(LetterData $data): Letter
+    {
+        $subject = match ($data->kind) {
+            RequestKind::Erasure => $data->hasObjection()
+                ? 'Opposition et demande d\'effacement de données personnelles (articles 21 et 17 du RGPD)'
+                : 'Demande d\'effacement de données personnelles (article 17 du RGPD)',
+            RequestKind::Access => 'Demande d\'accès à mes données personnelles (article 15 du RGPD)',
+            RequestKind::Rectification => 'Demande de rectification de données personnelles (article 16 du RGPD)',
+            RequestKind::Restriction => 'Demande de limitation du traitement de mes données personnelles (article 18 du RGPD)',
+        };
+
+        return new Letter($subject, $this->render('letters.'.$data->kind->value, $data, $subject));
+    }
+
+    /**
+     * Raccourci conservé pour la lisibilité des tests de la V1.
+     */
     public function erasure(LetterData $data): Letter
     {
-        $subject = $data->hasObjection()
-            ? 'Opposition et demande d\'effacement de données personnelles (articles 21 et 17 du RGPD)'
-            : 'Demande d\'effacement de données personnelles (article 17 du RGPD)';
-
-        return new Letter($subject, $this->render('letters.erasure', $data, $subject));
+        return $this->initial($data);
     }
 
     public function reminder(LetterData $data, DateTimeInterface $sentAt, DateTimeInterface $dueAt): Letter
     {
-        $subject = 'Relance : demande d\'effacement de données personnelles restée sans réponse';
+        $noun = $data->kind->requestNoun(); // « une demande d'effacement de données personnelles »
+        $subject = 'Relance : '.mb_substr($noun, mb_strlen('une ')).' restée sans réponse';
 
         return new Letter($subject, $this->render('letters.reminder', $data, $subject, [
             'sentAt' => $this->formatDate($sentAt),
             'dueAt' => $this->formatDate($dueAt),
+            'requestNoun' => $noun,
+            'reminderAction' => $data->kind->reminderAction(),
         ]));
     }
 
@@ -59,6 +79,10 @@ class LetterGenerator
      */
     public function dataList(array $types): string
     {
+        if ($types === []) {
+            return 'l\'ensemble des données me concernant';
+        }
+
         $labels = array_map(fn (DataType $t) => $t->label(), $types);
         $last = array_pop($labels);
 

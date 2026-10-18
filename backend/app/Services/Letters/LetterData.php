@@ -4,10 +4,12 @@ namespace App\Services\Letters;
 
 use App\Enums\DataType;
 use App\Enums\LegalGround;
+use App\Enums\RequestKind;
 use App\Models\ErasureRequest;
 use App\Models\Organization;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use LogicException;
 
 /**
  * Tout ce qu'il faut pour écrire une lettre, et rien d'autre.
@@ -31,15 +33,25 @@ final readonly class LetterData
         public array $dataTypes,
         public array $legalGrounds,
         public CarbonImmutable $date,
+        public RequestKind $kind = RequestKind::Erasure,
+        public ?string $details = null,
     ) {}
 
     /**
      * @param  list<DataType>  $dataTypes
      * @param  list<LegalGround>  $legalGrounds
      */
-    public static function make(User $user, Organization $organization, string $url, array $dataTypes, array $legalGrounds, ?CarbonImmutable $date = null): self
-    {
-        $profile = $user->profile;
+    public static function make(
+        User $user,
+        Organization $organization,
+        string $url,
+        array $dataTypes,
+        array $legalGrounds,
+        ?CarbonImmutable $date = null,
+        RequestKind $kind = RequestKind::Erasure,
+        ?string $details = null,
+    ): self {
+        $profile = $user->profile ?? throw new LogicException('Un profil est nécessaire pour rédiger une lettre.');
 
         return new self(
             firstName: $profile->first_name,
@@ -54,6 +66,8 @@ final readonly class LetterData
             dataTypes: $dataTypes,
             legalGrounds: $legalGrounds,
             date: $date ?? CarbonImmutable::now(),
+            kind: $kind,
+            details: $details,
         );
     }
 
@@ -66,6 +80,8 @@ final readonly class LetterData
             $request->data_types->values()->all(),
             $request->legal_grounds->values()->all(),
             $date,
+            $request->kind,
+            $request->details,
         );
     }
 

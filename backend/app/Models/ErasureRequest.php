@@ -6,6 +6,7 @@ use App\Enums\Channel;
 use App\Enums\DataType;
 use App\Enums\EventType;
 use App\Enums\LegalGround;
+use App\Enums\RequestKind;
 use App\Enums\RequestStatus;
 use App\Exceptions\InvalidTransitionException;
 use Database\Factories\ErasureRequestFactory;
@@ -31,6 +32,8 @@ use LogicException;
  * @property int $id
  * @property int $user_id
  * @property int $organization_id
+ * @property RequestKind $kind
+ * @property string|null $details
  * @property string $url
  * @property Collection<int, DataType> $data_types
  * @property Collection<int, LegalGround> $legal_grounds
@@ -46,7 +49,7 @@ use LogicException;
  * @property-read Organization $organization
  * @property-read \Illuminate\Database\Eloquent\Collection<int, RequestEvent> $events
  */
-#[Fillable(['organization_id', 'url', 'data_types', 'legal_grounds', 'channel', 'subject', 'body'])]
+#[Fillable(['organization_id', 'kind', 'url', 'data_types', 'legal_grounds', 'details', 'channel', 'subject', 'body'])]
 class ErasureRequest extends Model
 {
     /** @use HasFactory<ErasureRequestFactory> */
@@ -57,6 +60,7 @@ class ErasureRequest extends Model
 
     protected $attributes = [
         'status' => 'draft',
+        'kind' => 'erasure',
     ];
 
     protected function casts(): array
@@ -65,6 +69,8 @@ class ErasureRequest extends Model
             // Colonne JSON <-> collection d'enums : ["name","email"] <-> Collection<DataType>
             'data_types' => AsEnumCollection::of(DataType::class),
             'legal_grounds' => AsEnumCollection::of(LegalGround::class),
+            'kind' => RequestKind::class,
+            'details' => 'encrypted',
             'channel' => Channel::class,
             'status' => RequestStatus::class,
             'sent_at' => 'datetime',

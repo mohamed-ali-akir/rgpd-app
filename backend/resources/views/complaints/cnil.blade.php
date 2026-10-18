@@ -49,13 +49,19 @@
 
     <h2>3. Demande effectuée</h2>
     <table>
+        <tr><th>Droit exercé</th><td>{{ $request->kind->label() }} ({{ $request->kind->article() }} du RGPD)</td></tr>
         <tr><th>Données concernées</th><td>{{ app(\App\Services\LetterGenerator::class)->dataList($request->data_types->values()->all()) }}</td></tr>
-        <tr><th>Fondements invoqués</th><td>
-            @if ($request->legal_grounds->contains(\App\Enums\LegalGround::Objection))
-                Opposition (art. 21) ;
-            @endif
-            Effacement : {{ $request->legal_grounds->map(fn ($g) => $g->article())->implode(', ') }}
-        </td></tr>
+        @if ($request->kind === \App\Enums\RequestKind::Erasure)
+            <tr><th>Fondements invoqués</th><td>
+                @if ($request->legal_grounds->contains(\App\Enums\LegalGround::Objection))
+                    Opposition (art. 21) ;
+                @endif
+                Effacement : {{ $request->legal_grounds->map(fn ($g) => $g->article())->implode(', ') }}
+            </td></tr>
+        @endif
+        @if ($request->details)
+            <tr><th>Précisions</th><td>{{ $request->details }}</td></tr>
+        @endif
         <tr><th>Envoyée le</th><td>{{ $request->sent_at?->timezone(config('app.display_timezone'))->locale('fr')->isoFormat('D MMMM YYYY') ?? '—' }} ({{ $request->channel->value === 'gmail' ? 'e-mail' : 'envoi par l\'utilisateur' }})</td></tr>
         <tr><th>Échéance de réponse</th><td>{{ $request->due_at?->timezone(config('app.display_timezone'))->locale('fr')->isoFormat('D MMMM YYYY') ?? '—' }} (art. 12.3)</td></tr>
         <tr><th>Situation actuelle</th><td>{{ $request->events->contains('type', \App\Enums\EventType::ResponseRefused) ? 'Demande refusée par l\'organisme' : 'Aucune réponse dans le délai légal' }}</td></tr>

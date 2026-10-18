@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\CreateDraftRequest;
+use App\Actions\DraftInput;
+use App\Enums\Channel;
 use App\Enums\DataType;
-use App\Enums\EventType;
+use App\Enums\RequestKind;
 use App\Enums\RequestStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreErasureRequestRequest;
@@ -11,14 +14,12 @@ use App\Http\Requests\UpdateErasureRequestRequest;
 use App\Http\Resources\ErasureRequestResource;
 use App\Models\ErasureRequest;
 use App\Models\Organization;
-use App\Services\LegalAdvisor;
 use App\Services\LetterGenerator;
 use App\Services\Letters\LetterData;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class ErasureRequestController extends Controller
@@ -38,42 +39,28 @@ class ErasureRequestController extends Controller
     }
 
     /**
-     * Crée un brouillon : fondements suggérés par LegalAdvisor + lettre générée.
+     * Crée un brouillon : fondements suggérés, lettre générée (voir CreateDraftRequest).
      */
-    public function store(StoreErasureRequestRequest $request, LegalAdvisor $advisor, LetterGenerator $letters): JsonResponse
+    public function store(StoreErasureRequestRequest $request, CreateDraftRequest $createDraft): JsonResponse
     {
         $data = $request->validated();
-        $user = $request->user();
-        $organization = Organization::findOrFail($data['organization_id']);
-        $dataTypes = array_map(fn (string $t) => DataType::from($t), $data['data_types']);
+        $kind = RequestKind::from($data['kind'] ?? RequestKind::Erasure->value);
 
-        $advice = $advisor->advise(
-            $organization,
-            selfPublished: $request->boolean('self_published'),
-            hasAccount: $request->boolean('has_account'),
+        $erasureRequest = $createDraft->handle(
+            $request->user(),
+            Organization::findOrFail($data['organization_id']),
+            new DraftInput(
+                url: $data['url'],
+                kind: $kind,
+                dataTypes: array_map(fn (string $t) => DataType::from($t), $data['data_types'] ?? []),
+                details: $kind->requiresDetails() ? $data['details'] : null,
+                selfPublished: $request->boolean('self_published'),
+                hasAccount: $request->boolean('has_account'),
+                channel: isset($data['channel']) ? Channel::from($data['channel']) : null,
+                // On garde la trace de la case « je fais cette demande pour mes propres données ».
+                context: ['own_data_confirmed' => true],
+            ),
         );
-        $letter = $letters->erasure(LetterData::make($user, $organization, $data['url'], $dataTypes, $advice->legalGrounds));
-
-        $erasureRequest = DB::transaction(function () use ($user, $organization, $data, $dataTypes, $advice, $letter, $request) {
-            $erasureRequest = $user->erasureRequests()->create([
-                'organization_id' => $organization->id,
-                'url' => $data['url'],
-                'data_types' => $dataTypes,
-                'legal_grounds' => $advice->legalGrounds,
-                'channel' => $data['channel'] ?? $advice->suggestedChannel,
-                'subject' => $letter->subject,
-                'body' => $letter->body,
-            ]);
-
-            // On garde la trace des réponses aux questions et de la case "mes propres données".
-            $erasureRequest->recordEvent(EventType::Created, [
-                'own_data_confirmed' => true,
-                'self_published' => $request->boolean('self_published'),
-                'has_account' => $request->boolean('has_account'),
-            ]);
-
-            return $erasureRequest;
-        });
 
         return (new ErasureRequestResource($erasureRequest->load('organization', 'events')))
             ->response()
@@ -82,7 +69,6 @@ class ErasureRequestController extends Controller
 
     public function show(ErasureRequest $erasureRequest): ErasureRequestResource
     {
-
         return new ErasureRequestResource($erasureRequest->load('organization', 'events'));
     }
 
@@ -96,7 +82,7 @@ class ErasureRequestController extends Controller
         $erasureRequest->fill($request->safe()->except('regenerate_letter'));
 
         if ($request->boolean('regenerate_letter')) {
-            $letter = $letters->erasure(LetterData::fromRequest($erasureRequest));
+            $letter = $letters->initial(LetterData::fromRequest($erasureRequest));
             $erasureRequest->subject = $letter->subject;
             $erasureRequest->body = $letter->body;
         }
@@ -108,7 +94,6 @@ class ErasureRequestController extends Controller
 
     public function destroy(ErasureRequest $erasureRequest): Response
     {
-
         // L'historique part avec (clé étrangère en cascade).
         $erasureRequest->delete();
 
