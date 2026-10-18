@@ -9,6 +9,7 @@ import type {
   RequestStatus,
   ResponseOutcome,
 } from '../types/api'
+import { apiPath } from '../lib/basePath'
 import { api } from './client'
 
 export interface CreateRequestInput {
@@ -104,5 +105,5 @@ export async function verifyRequest(id: number): Promise<ErasureRequestDetail> {
 
 /** Lien direct (téléchargement par le navigateur, pas par axios). */
 export function complaintPdfUrl(id: number): string {
-  return `/api/requests/${id}/complaint.pdf`
+  return apiPath(`/api/requests/${id}/complaint.pdf`)
 }

@@ -19,6 +19,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -53,6 +54,18 @@ class AppServiceProvider extends ServiceProvider
     {
         // Les API Resources renvoient l'objet directement, sans l'envelopper dans { "data": ... }.
         JsonResource::withoutWrapping();
+
+        /*
+         * Application servie sous un chemin (démo sur akir.alwaysdata.net/efface-moi) : l'hébergeur retire
+         * ce chemin avant de transmettre la requête, Laravel se croit donc à la racine. On force APP_URL
+         * pour que les liens générés (e-mails, redirections après Google ou la vérification d'e-mail)
+         * gardent le chemin. À la racine d'un domaine, rien ne change.
+         */
+        $appUrl = (string) config('app.url');
+        if (trim((string) parse_url($appUrl, PHP_URL_PATH), '/') !== '') {
+            URL::forceRootUrl(rtrim($appUrl, '/'));
+            URL::forceScheme((string) parse_url($appUrl, PHP_URL_SCHEME));
+        }
 
         /*
          * Formulaires accessibles sans être connecté (inscription, connexion, mot de passe oublié) :
