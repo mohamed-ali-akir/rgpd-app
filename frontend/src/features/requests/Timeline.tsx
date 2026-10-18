@@ -10,6 +10,14 @@ const DOT_COLORS: Partial<Record<EventType, string>> = {
   complaint_generated: 'bg-purple-500',
 }
 
+/** Explication d'un échec d'envoi, selon la raison enregistrée par SendErasureRequestJob. */
+const SEND_FAILURE_MESSAGES: Record<string, string> = {
+  google_disconnected: 'L\'accès à Gmail a été retiré : reconnectez Gmail dans les paramètres.',
+  gmail_error: 'Gmail n\'a pas pu envoyer le message. Réessayez plus tard.',
+  uncertain:
+    'L\'envoi a été interrompu : Gmail a peut-être quand même envoyé la lettre. Vérifiez vos messages envoyés dans Gmail avant de réessayer, pour ne pas l\'envoyer deux fois.',
+}
+
 /** Frise de l'historique de la demande (événements horodatés, jamais modifiés). */
 export function Timeline({ events }: { events: RequestEvent[] }) {
   return (
@@ -27,9 +35,7 @@ export function Timeline({ events }: { events: RequestEvent[] }) {
             </p>
             {event.type === 'send_failed' && (
               <p className="text-xs text-red-700">
-                {event.payload.reason === 'google_disconnected'
-                  ? 'L\'accès à Gmail a été retiré : reconnectez Gmail dans les paramètres.'
-                  : 'Gmail n\'a pas pu envoyer le message. Réessayez plus tard.'}
+                {SEND_FAILURE_MESSAGES[String(event.payload.reason)] ?? SEND_FAILURE_MESSAGES.gmail_error}
               </p>
             )}
             {note && <p className="mt-1 text-sm whitespace-pre-line text-slate-700">{note}</p>}

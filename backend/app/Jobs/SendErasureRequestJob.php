@@ -10,9 +10,11 @@ use App\Services\LetterGenerator;
 use App\Services\Letters\LetterData;
 use App\Services\Mail\GoogleAccountDisconnectedException;
 use App\Services\Mail\MailSender;
+use App\Services\Mail\MailSendingFailedException;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
@@ -69,6 +71,16 @@ class SendErasureRequestJob implements ShouldBeUnique, ShouldQueue
             return;
         }
 
+        // Un essai précédent a commencé l'envoi sans pouvoir l'enregistrer (base indisponible juste après
+        // l'appel à Gmail, worker arrêté en plein envoi…) : Gmail a peut-être déjà envoyé la lettre.
+        // On ne la renvoie surtout pas : l'utilisateur vérifie ses messages envoyés et relance s'il le faut.
+        if (! $this->startSending($request)) {
+            $this->stopSending($request);
+            $request->recordEvent(EventType::SendFailed, ['kind' => $this->kind, 'reason' => 'uncertain']);
+
+            return;
+        }
+
         [$subject, $body] = $this->kind === self::REMINDER
             ? $this->reminderLetter($request, $letters)
             : [$request->subject, $request->body];
@@ -77,23 +89,33 @@ class SendErasureRequestJob implements ShouldBeUnique, ShouldQueue
             $messageId = $sender->send($request->user, $request->organization->privacy_email, $subject, $body);
         } catch (GoogleAccountDisconnectedException) {
             // Inutile de réessayer : il faut que l'utilisateur reconnecte Gmail.
+            $this->stopSending($request);
             $request->user->googleAccount?->delete();
             $request->recordEvent(EventType::SendFailed, ['kind' => $this->kind, 'reason' => 'google_disconnected']);
 
             return;
+        } catch (MailSendingFailedException $exception) {
+            // Gmail a répondu par une erreur : rien n'est parti, le prochain essai peut envoyer.
+            $this->stopSending($request);
+
+            throw $exception;
         }
 
-        if ($this->kind === self::REMINDER) {
-            $request->recordEvent(EventType::ReminderSent, ['channel' => 'gmail', 'message_id' => $messageId]);
+        // Toute autre erreur à partir d'ici laisse le marqueur en place : le prochain essai saura
+        // que la lettre est peut-être partie.
+        DB::transaction(function () use ($request, $messageId, $deadlines) {
+            if ($this->kind === self::REMINDER) {
+                $request->recordEvent(EventType::ReminderSent, ['channel' => 'gmail', 'message_id' => $messageId]);
+            } else {
+                $sentAt = now();
+                $request->transitionTo(RequestStatus::Sent, [
+                    'sent_at' => $sentAt,
+                    'due_at' => $deadlines->initialDueAt($sentAt),
+                ], ['channel' => 'gmail', 'message_id' => $messageId]);
+            }
 
-            return;
-        }
-
-        $sentAt = now();
-        $request->transitionTo(RequestStatus::Sent, [
-            'sent_at' => $sentAt,
-            'due_at' => $deadlines->initialDueAt($sentAt),
-        ], ['channel' => 'gmail', 'message_id' => $messageId]);
+            $this->stopSending($request);
+        });
     }
 
     /**
@@ -101,7 +123,32 @@ class SendErasureRequestJob implements ShouldBeUnique, ShouldQueue
      */
     public function failed(?Throwable $exception): void
     {
-        $this->erasureRequest->recordEvent(EventType::SendFailed, ['kind' => $this->kind, 'reason' => 'gmail_error']);
+        $request = $this->erasureRequest->fresh();
+        if ($request === null) {
+            return;
+        }
+
+        // Marqueur encore posé : le dernier essai a échoué APRÈS avoir lancé l'envoi.
+        $uncertain = $request->sending_started_at !== null;
+        $this->stopSending($request);
+        $request->recordEvent(EventType::SendFailed, ['kind' => $this->kind, 'reason' => $uncertain ? 'uncertain' : 'gmail_error']);
+    }
+
+    /**
+     * Pose le marqueur « envoi commencé » juste avant l'appel à Gmail. Requête atomique : renvoie false
+     * si le marqueur était déjà posé par un essai précédent.
+     */
+    private function startSending(ErasureRequest $request): bool
+    {
+        return ErasureRequest::query()
+            ->whereKey($request->id)
+            ->whereNull('sending_started_at')
+            ->update(['sending_started_at' => now()]) === 1;
+    }
+
+    private function stopSending(ErasureRequest $request): void
+    {
+        ErasureRequest::query()->whereKey($request->id)->update(['sending_started_at' => null]);
     }
 
     private function stillRelevant(ErasureRequest $request): bool

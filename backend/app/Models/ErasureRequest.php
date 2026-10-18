@@ -44,6 +44,7 @@ use LogicException;
  * @property string $body
  * @property Carbon|null $sent_at
  * @property Carbon|null $due_at
+ * @property Carbon|null $sending_started_at
  * @property VerificationStatus|null $verification
  * @property Carbon|null $next_check_at
  * @property int $check_count
@@ -82,6 +83,7 @@ class ErasureRequest extends Model
             'status' => RequestStatus::class,
             'sent_at' => 'datetime',
             'due_at' => 'datetime',
+            'sending_started_at' => 'datetime',
             'verification' => VerificationStatus::class,
             'next_check_at' => 'datetime',
             'check_count' => 'integer',
