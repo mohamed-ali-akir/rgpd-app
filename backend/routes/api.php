@@ -64,6 +64,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/responses', 'response');
             Route::post('/complaint', 'complaint');
             Route::post('/close', 'close');
+            Route::post('/verify', 'verify');
         });
 
     Route::delete('/google-account', [GoogleAccountController::class, 'destroy']);

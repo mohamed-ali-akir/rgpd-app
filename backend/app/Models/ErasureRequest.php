@@ -8,6 +8,7 @@ use App\Enums\EventType;
 use App\Enums\LegalGround;
 use App\Enums\RequestKind;
 use App\Enums\RequestStatus;
+use App\Enums\VerificationStatus;
 use App\Exceptions\InvalidTransitionException;
 use Database\Factories\ErasureRequestFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -43,6 +44,9 @@ use LogicException;
  * @property string $body
  * @property Carbon|null $sent_at
  * @property Carbon|null $due_at
+ * @property VerificationStatus|null $verification
+ * @property Carbon|null $next_check_at
+ * @property int $check_count
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read User $user
@@ -54,6 +58,9 @@ class ErasureRequest extends Model
 {
     /** @use HasFactory<ErasureRequestFactory> */
     use HasFactory, Prunable;
+
+    /** Relations chargées pour la page de détail (une seule liste, utilisée partout). */
+    public const DETAIL_RELATIONS = ['organization', 'events', 'checks'];
 
     /** Vrai uniquement pendant l'exécution de transitionTo(). */
     private bool $transitioning = false;
@@ -75,6 +82,9 @@ class ErasureRequest extends Model
             'status' => RequestStatus::class,
             'sent_at' => 'datetime',
             'due_at' => 'datetime',
+            'verification' => VerificationStatus::class,
+            'next_check_at' => 'datetime',
+            'check_count' => 'integer',
         ];
     }
 
@@ -118,6 +128,15 @@ class ErasureRequest extends Model
     {
         if (! $this->status->canTransitionTo($to)) {
             throw InvalidTransitionException::between($this->status, $to);
+        }
+
+        // Effacement accepté : on programme la vérification que la page ne contient plus les données.
+        if ($to === RequestStatus::Accepted && $this->kind === RequestKind::Erasure) {
+            $attributes += [
+                'verification' => VerificationStatus::Pending,
+                'next_check_at' => now()->addDays((int) config('scanner.verification.first_delay_days')),
+                'check_count' => 0,
+            ];
         }
 
         DB::transaction(function () use ($to, $attributes, $payload) {
@@ -164,6 +183,45 @@ class ErasureRequest extends Model
     }
 
     /**
+     * Plainte CNIL : refus ou délai dépassé ; après une acceptation, seulement si la vérification
+     * montre que les données sont toujours en ligne.
+     */
+    public function canFileComplaint(): bool
+    {
+        if (! $this->status->canTransitionTo(RequestStatus::Complaint)) {
+            return false;
+        }
+
+        return $this->status !== RequestStatus::Accepted || $this->verification === VerificationStatus::StillPresent;
+    }
+
+    /**
+     * Vérification manuelle possible tant qu'un effacement a été accepté (y compris pour revérifier).
+     */
+    public function canBeVerified(): bool
+    {
+        return $this->kind === RequestKind::Erasure
+            && $this->verification !== null
+            && in_array($this->status, [RequestStatus::Accepted, RequestStatus::Complaint], true);
+    }
+
+    /** @return HasMany<ErasureCheck, $this> */
+    public function checks(): HasMany
+    {
+        return $this->hasMany(ErasureCheck::class)->orderByDesc('checked_at')->orderByDesc('id');
+    }
+
+    /**
+     * Demandes dont une vérification automatique est due (tâche quotidienne).
+     *
+     * @param  Builder<ErasureRequest>  $query
+     */
+    public function scopeDueForVerification(Builder $query): void
+    {
+        $query->where('verification', VerificationStatus::Pending)->where('next_check_at', '<=', now());
+    }
+
+    /**
      * Actions proposées à l'utilisateur selon le statut. Le front se contente
      * d'afficher les boutons correspondants : la règle métier reste ici.
      *
@@ -184,8 +242,11 @@ class ErasureRequest extends Model
         if ($this->responseOutcomes() !== []) {
             $actions[] = 'respond';
         }
-        if ($status->canTransitionTo(RequestStatus::Complaint)) {
+        if ($this->canFileComplaint()) {
             $actions[] = 'complaint';
+        }
+        if ($this->canBeVerified()) {
+            $actions[] = 'verify';
         }
         if ($status->canTransitionTo(RequestStatus::Closed)) {
             $actions[] = 'close';

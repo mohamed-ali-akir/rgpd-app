@@ -62,14 +62,14 @@ class ErasureRequestController extends Controller
             ),
         );
 
-        return (new ErasureRequestResource($erasureRequest->load('organization', 'events')))
+        return (new ErasureRequestResource($erasureRequest->load(ErasureRequest::DETAIL_RELATIONS)))
             ->response()
             ->setStatusCode(201);
     }
 
     public function show(ErasureRequest $erasureRequest): ErasureRequestResource
     {
-        return new ErasureRequestResource($erasureRequest->load('organization', 'events'));
+        return new ErasureRequestResource($erasureRequest->load(ErasureRequest::DETAIL_RELATIONS));
     }
 
     /**
@@ -89,7 +89,7 @@ class ErasureRequestController extends Controller
 
         $erasureRequest->save();
 
-        return new ErasureRequestResource($erasureRequest->load('organization', 'events'));
+        return new ErasureRequestResource($erasureRequest->load(ErasureRequest::DETAIL_RELATIONS));
     }
 
     public function destroy(ErasureRequest $erasureRequest): Response

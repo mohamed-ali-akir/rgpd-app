@@ -47,7 +47,7 @@ describe('réponses de l\'organisme', function () {
         $this->actingAs($request->user)
             ->postJson("/api/requests/{$request->id}/responses", ['outcome' => 'accepted', 'note' => 'Données supprimées'])
             ->assertOk()
-            ->assertJson(['status' => 'accepted', 'available_actions' => ['close', 'delete']]);
+            ->assertJson(['status' => 'accepted', 'verification' => 'pending', 'available_actions' => ['verify', 'close', 'delete']]);
     });
 
     it('prolonge l\'échéance à 3 mois après l\'envoi', function () {

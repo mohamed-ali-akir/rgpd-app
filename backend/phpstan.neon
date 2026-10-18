@@ -12,3 +12,12 @@ parameters:
         - database/seeders
     level: 6
     tmpDir: storage/phpstan
+
+    ignoreErrors:
+        # Faux positif : la définition de type de filter_var() ignore qu'avec ces options (NO_PRIV_RANGE,
+        # GLOBAL_RANGE…) la fonction renvoie false pour une IP privée. Le comportement réel est vérifié par
+        # tests/Unit/WebSafetyTest.php (« refuse les adresses internes »).
+        -
+            identifier: notIdentical.alwaysTrue
+            path: app/Services/Web/UrlGuard.php
+            count: 1

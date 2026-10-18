@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Services\Mail\FakeSender;
 use App\Services\Mail\GmailSender;
 use App\Services\Mail\MailSender;
+use App\Services\Web\DnsHostResolver;
+use App\Services\Web\HostResolver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -21,6 +23,9 @@ class AppServiceProvider extends ServiceProvider
             'gmail' => new GmailSender,
             default => new FakeSender,
         });
+
+        // Résolution DNS réelle ; les tests la remplacent par une table fixe (aucun accès réseau).
+        $this->app->bind(HostResolver::class, DnsHostResolver::class);
     }
 
     public function boot(): void

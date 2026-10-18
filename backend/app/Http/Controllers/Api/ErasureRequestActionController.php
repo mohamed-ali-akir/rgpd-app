@@ -10,6 +10,7 @@ use App\Http\Requests\MarkSentRequest;
 use App\Http\Requests\StoreResponseRequest;
 use App\Http\Resources\ErasureRequestResource;
 use App\Jobs\SendErasureRequestJob;
+use App\Jobs\VerifyErasureJob;
 use App\Models\ErasureRequest;
 use App\Models\User;
 use App\Services\DeadlineCalculator;
@@ -103,6 +104,7 @@ class ErasureRequestActionController extends Controller
 
     public function complaint(ErasureRequest $erasureRequest): ErasureRequestResource
     {
+        abort_unless($erasureRequest->canFileComplaint(), 409, "Une plainte n'est possible qu'après un refus, un délai dépassé, ou si les données sont toujours en ligne malgré l'acceptation.");
         $erasureRequest->transitionTo(RequestStatus::Complaint);
 
         return $this->detail($erasureRequest);
@@ -113,6 +115,23 @@ class ErasureRequestActionController extends Controller
         $erasureRequest->transitionTo(RequestStatus::Closed);
 
         return $this->detail($erasureRequest);
+    }
+
+    /**
+     * Vérification manuelle de l'effacement (en file d'attente : la lecture d'une page peut être lente).
+     * Une par heure et par demande, pour ne pas solliciter le site de l'organisme.
+     */
+    public function verify(ErasureRequest $erasureRequest): JsonResponse
+    {
+        abort_unless($erasureRequest->canBeVerified(), 409, 'Seul un effacement accepté peut être vérifié.');
+
+        $key = 'verify-erasure:'.$erasureRequest->id;
+        abort_if(RateLimiter::tooManyAttempts($key, 1), 429, 'Une vérification a déjà été lancée récemment. Réessayez plus tard.');
+        RateLimiter::hit($key, (int) config('scanner.verification.manual_cooldown_seconds'));
+
+        VerifyErasureJob::dispatch($erasureRequest, manual: true);
+
+        return $this->detail($erasureRequest)->response()->setStatusCode(202);
     }
 
     /**
@@ -135,6 +154,6 @@ class ErasureRequestActionController extends Controller
 
     private function detail(ErasureRequest $erasureRequest): ErasureRequestResource
     {
-        return new ErasureRequestResource($erasureRequest->refresh()->load('organization', 'events'));
+        return new ErasureRequestResource($erasureRequest->refresh()->load(ErasureRequest::DETAIL_RELATIONS));
     }
 }

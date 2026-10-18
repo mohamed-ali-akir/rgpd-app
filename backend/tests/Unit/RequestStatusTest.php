@@ -16,6 +16,7 @@ it('autorise les transitions prévues', function (S $from, S $to) {
     'refusée → plainte' => [S::Refused, S::Complaint],
     'refusée → clôturée' => [S::Refused, S::Closed],
     'acceptée → clôturée' => [S::Accepted, S::Closed],
+    'acceptée → plainte (données toujours en ligne)' => [S::Accepted, S::Complaint],
     'plainte → clôturée' => [S::Complaint, S::Closed],
 ]);
 
@@ -27,7 +28,7 @@ it('interdit les autres transitions', function (S $from, S $to) {
     'envoyée → plainte' => [S::Sent, S::Complaint],
     'prolongée → prolongée' => [S::Extended, S::Extended],
     'en retard → prolongée' => [S::Overdue, S::Extended],
-    'acceptée → plainte' => [S::Accepted, S::Complaint],
+    'acceptée → envoyée' => [S::Accepted, S::Sent],
     'clôturée → brouillon' => [S::Closed, S::Draft],
     'clôturée → envoyée' => [S::Closed, S::Sent],
 ]);

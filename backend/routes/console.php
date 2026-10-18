@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Schedule;
 // L'application tourne en UTC : on précise le fuseau pour que "8 h" soit 8 h à Paris.
 Schedule::command('requests:check-deadlines')->dailyAt('08:00')->timezone(config('app.display_timezone'))->withoutOverlapping();
 
+// Vérification que les effacements acceptés ont vraiment eu lieu (lecture des pages par le worker).
+Schedule::command('requests:verify-erasures')->dailyAt('09:00')->timezone(config('app.display_timezone'))->withoutOverlapping();
+
 // Conservation limitée : suppression des demandes clôturées depuis plus de 12 mois
 // (voir ErasureRequest::prunable()).
 Schedule::command('model:prune')->daily();

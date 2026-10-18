@@ -31,7 +31,9 @@ enum RequestStatus: string
             // Une relance ajoute un événement mais ne change pas le statut.
             self::Overdue => [self::Accepted, self::Refused, self::Complaint],
             self::Refused => [self::Complaint, self::Closed],
-            self::Accepted => [self::Closed],
+            // Plainte possible si l'organisme a accepté mais que les données sont toujours en ligne
+            // (condition vérifiée par ErasureRequest::canFileComplaint()).
+            self::Accepted => [self::Closed, self::Complaint],
             self::Complaint => [self::Closed],
             self::Closed => [],
         };

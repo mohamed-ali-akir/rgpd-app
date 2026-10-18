@@ -29,6 +29,9 @@ class ErasureRequestResource extends JsonResource
             'body' => $this->body,
             'sent_at' => $this->sent_at?->toIso8601String(),
             'due_at' => $this->due_at?->toIso8601String(),
+            'verification' => $this->verification,
+            'next_check_at' => $this->next_check_at?->toIso8601String(),
+            'checks' => ErasureCheckResource::collection($this->whenLoaded('checks')),
             'created_at' => $this->created_at->toIso8601String(),
             'organization' => new OrganizationResource($this->whenLoaded('organization')),
 

@@ -14,6 +14,10 @@ enum EventType: string
     case Overdue = 'overdue';
     case ComplaintGenerated = 'complaint_generated';
     case Closed = 'closed';
+    // V2 : vérification de l'effacement.
+    case ErasureVerified = 'erasure_verified';
+    case ErasureStillPresent = 'erasure_still_present';
+    case VerificationImpossible = 'verification_impossible';
 
     /**
      * Événement enregistré automatiquement quand la demande entre dans un statut.
@@ -45,6 +49,9 @@ enum EventType: string
             self::Overdue => 'Délai légal dépassé',
             self::ComplaintGenerated => 'Dossier de plainte CNIL préparé',
             self::Closed => 'Demande clôturée',
+            self::ErasureVerified => 'Effacement vérifié : les données ne sont plus en ligne',
+            self::ErasureStillPresent => "Données toujours en ligne malgré l'acceptation",
+            self::VerificationImpossible => 'Vérification automatique impossible',
         };
     }
 }
