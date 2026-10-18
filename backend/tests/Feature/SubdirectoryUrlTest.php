@@ -3,8 +3,8 @@
 use App\Providers\AppServiceProvider;
 
 /*
- * Démo servie sur akir.alwaysdata.net/efface-moi : l'hébergeur retire "/efface-moi" avant de
- * transmettre la requête. Les liens générés par Laravel doivent pourtant garder ce chemin.
+ * Démo servie sur akir.alwaysdata.net/efface-moi : les liens générés par Laravel doivent garder
+ * ce chemin, y compris hors requête web (e-mails envoyés par le planificateur).
  */
 
 it('garde le chemin de APP_URL dans les liens et les redirections', function () {

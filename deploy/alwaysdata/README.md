@@ -9,7 +9,7 @@ L'offre gratuite (1 Go de disque, 256 Mo de RAM, 0,25 CPU) impose trois choix :
 | Contrainte | Choix |
 |---|---|
 | Pas de service permanent (donc pas de `queue:work`) | `QUEUE_CONNECTION=sync` : les jobs s'exécutent pendant la requête ; en démo ils sont instantanés |
-| Une seule adresse `akir.alwaysdata.net`, déjà prise par StagePilot | Un 2ᵉ site sur le chemin `/efface-moi`, avec l'option « Exclure le chemin » |
+| Une seule adresse `akir.alwaysdata.net`, déjà prise par StagePilot | Un 2ᵉ site sur le chemin `/efface-moi` |
 | Peu de CPU | Le front est construit sur le PC ; SQLite au lieu de MySQL |
 
 Fichiers de ce dossier :
@@ -22,9 +22,12 @@ Fichiers de ce dossier :
 
 ## Comment fonctionne le chemin `/efface-moi`
 
-1. alwaysdata reçoit `https://akir.alwaysdata.net/efface-moi/api/me`, retire `/efface-moi` (« Exclure le chemin »)
-   et transmet `/api/me` au site, dont la racine est `~/efface-moi/public`.
-2. Le `.htaccess` envoie `/api/...` à Laravel, qui fonctionne donc exactement comme à la racine d'un domaine.
+1. alwaysdata génère un seul VirtualHost Apache pour les deux sites : StagePilot en `DocumentRoot`, et
+   `Alias /efface-moi "/home/akir/efface-moi/public/"`. Apache doit donc recevoir l'adresse complète
+   (`/efface-moi/api/me`) : l'option « Exclure le chemin » **ne doit pas** être cochée, sinon le chemin est retiré
+   avant Apache et c'est StagePilot qui répond.
+2. Le `.htaccess` (avec `RewriteBase /efface-moi/`) envoie `api/...` et `sanctum/...` à `index.php`. Laravel déduit
+   le sous-dossier de `SCRIPT_NAME` et ses routes restent `/api/...`.
 3. Dans l'autre sens, ce qui part vers le navigateur doit contenir le chemin :
    - le front est construit avec `--base=/efface-moi/` (fichiers JS/CSS, routeur React, appels à l'API : `src/lib/basePath.ts`) ;
    - Laravel génère ses liens à partir d'`APP_URL`, qui contient le chemin (`AppServiceProvider`) ;
@@ -44,7 +47,7 @@ Dans l'administration alwaysdata :
    - Type : PHP, version 8.4
    - Répertoire racine : `efface-moi/public`
    - Onglet SSL : cocher « Forcer le HTTPS »
-   - Onglet Avancé : cocher **« Exclure le chemin »**
+   - Onglet Avancé : laisser **« Exclure le chemin » décoché** (voir plus haut)
 3. **Avancé → Tâches planifiées → Ajouter** : commande `cd ~/efface-moi && php artisan demo:reset`, tous les jours à 3 h.
    (Le planificateur de Laravel n'est pas utilisé : la tâche StagePilot tourne toutes les 10 minutes et la démo n'a besoin
    que de cette remise à zéro.)
