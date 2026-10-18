@@ -68,7 +68,8 @@ it('isole une source en panne : le scan aboutit avec les autres', function () {
     ]);
 
     expect($scan->status)->toBe(ScanStatus::Completed)
-        ->and($scan->report)->toBe([
+        // toEqual et non toBe : MySQL réordonne les clés d'une colonne JSON, seul le contenu compte.
+        ->and($scan->report)->toEqual([
             'company_registry' => ['status' => 'failed', 'error' => 'RuntimeException'],
             'web_search' => ['status' => 'ok', 'found' => 1],
         ])

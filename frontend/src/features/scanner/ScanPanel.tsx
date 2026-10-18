@@ -15,6 +15,8 @@ const REPORT_TEXT: Record<SourceReport['status'], (report: SourceReport) => stri
   skipped: () => 'non configurée',
 }
 
+const SOURCES = Object.keys(FINDING_SOURCE_LABELS) as FindingSource[]
+
 /** Lancement d'une recherche et suivi de la plus récente. */
 export function ScanPanel() {
   const { data: user } = useUser()
@@ -55,11 +57,17 @@ export function ScanPanel() {
               {latest.status === 'completed' && ` — ${latest.new_findings_count} nouveau(x) résultat(s)`}
             </p>
             <ul className="mt-1 space-y-0.5 text-xs text-slate-600">
-              {(Object.entries(latest.report) as [FindingSource, SourceReport][]).map(([source, report]) => (
-                <li key={source}>
-                  {FINDING_SOURCE_LABELS[source]} : {REPORT_TEXT[report.status](report)}
-                </li>
-              ))}
+              {/* Ordre fixe des sources : MySQL ne conserve pas l'ordre des clés du rapport (colonne JSON). */}
+              {SOURCES.map((source) => {
+                const report = latest.report[source]
+                return (
+                  report && (
+                    <li key={source}>
+                      {FINDING_SOURCE_LABELS[source]} : {REPORT_TEXT[report.status](report)}
+                    </li>
+                  )
+                )
+              })}
             </ul>
           </div>
         )}
