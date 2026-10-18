@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { Card } from '../../../components/ui/Card'
 import { Spinner } from '../../../components/ui/Spinner'
 import type { ErasureRequestDetail, Organization, ResolveResult } from '../../../types/api'
@@ -18,8 +18,10 @@ const STEPS = ['Adresse de la page', 'Organisme', 'Données concernées', 'Lettr
  */
 export function NewRequestWizard() {
   const navigate = useNavigate()
+  // ?url=... : arrivée depuis un résultat du scanner dont l'organisme est inconnu.
+  const [searchParams] = useSearchParams()
   const [step, setStep] = useState(0)
-  const [url, setUrl] = useState('')
+  const [url, setUrl] = useState(searchParams.get('url') ?? '')
   const [resolved, setResolved] = useState<ResolveResult | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [draftId, setDraftId] = useState<number | null>(null)

@@ -124,6 +124,7 @@ describe('Assistant de création — étape 3 (données)', () => {
     await user.click(screen.getByRole('button', { name: 'Générer la lettre' }))
 
     expect(requestsApi.createRequest).toHaveBeenCalledWith({
+      kind: 'erasure',
       url: 'https://annuaire.test/camille',
       organization_id: organization.id,
       data_types: ['name', 'phone'],
@@ -134,5 +135,61 @@ describe('Assistant de création — étape 3 (données)', () => {
     })
     expect(await screen.findByLabelText('Texte')).toHaveValue('Corps de la lettre')
     expect(screen.getByText('Publication légale : un refus est probable.')).toBeInTheDocument()
+  })
+})
+
+describe('Assistant de création — autres droits (V2)', () => {
+  it('rectification : exige la correction demandée et masque l\'origine des données', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<NewRequestWizard />)
+    await goToDataStep(user)
+
+    await user.click(screen.getByRole('radio', { name: /rectification/i }))
+    expect(screen.queryByLabelText(/j'ai publié ces informations/i)).not.toBeInTheDocument()
+
+    await user.click(screen.getByLabelText('Nom et prénom'))
+    await user.click(screen.getByLabelText(/concerne mes propres données/i))
+    await user.click(screen.getByRole('button', { name: 'Générer la lettre' }))
+
+    expect(await screen.findByText('Indiquez la correction demandée.')).toBeInTheDocument()
+    expect(requestsApi.createRequest).not.toHaveBeenCalled()
+  })
+
+  it('rectification : envoie le type de droit et la correction', async () => {
+    vi.mocked(requestsApi.createRequest).mockResolvedValue(makeRequest({ kind: 'rectification' }))
+    vi.mocked(requestsApi.fetchRequest).mockResolvedValue(makeRequest({ kind: 'rectification' }))
+    const user = userEvent.setup()
+    renderWithProviders(<NewRequestWizard />)
+    await goToDataStep(user)
+
+    await user.click(screen.getByRole('radio', { name: /rectification/i }))
+    await user.type(screen.getByLabelText('Correction demandée'), 'Remplacer 12 rue des Lilas par 14 rue des Lilas')
+    await user.click(screen.getByLabelText('Adresse postale'))
+    await user.click(screen.getByLabelText(/concerne mes propres données/i))
+    await user.click(screen.getByRole('button', { name: 'Générer la lettre' }))
+
+    expect(requestsApi.createRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'rectification', details: 'Remplacer 12 rue des Lilas par 14 rue des Lilas', data_types: ['postal_address'] }),
+    )
+  })
+
+  it('accès : les types de données sont facultatifs et aucun détail n\'est envoyé', async () => {
+    vi.mocked(requestsApi.createRequest).mockResolvedValue(makeRequest({ kind: 'access' }))
+    vi.mocked(requestsApi.fetchRequest).mockResolvedValue(makeRequest({ kind: 'access' }))
+    const user = userEvent.setup()
+    renderWithProviders(<NewRequestWizard />)
+    await goToDataStep(user)
+
+    await user.click(screen.getByRole('radio', { name: /accès à mes données/i }))
+    await user.click(screen.getByLabelText(/concerne mes propres données/i))
+    await user.click(screen.getByRole('button', { name: 'Générer la lettre' }))
+
+    expect(requestsApi.createRequest).toHaveBeenCalledWith(expect.objectContaining({ kind: 'access', data_types: [], details: undefined }))
+  })
+
+  it('pré-remplit l\'adresse transmise par le scanner (?url=)', () => {
+    renderWithProviders(<NewRequestWizard />, { route: '/requests/new?url=https%3A%2F%2Fannuaire.test%2Fcamille' })
+
+    expect(screen.getByLabelText(/adresse de la page/i)).toHaveValue('https://annuaire.test/camille')
   })
 })

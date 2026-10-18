@@ -6,7 +6,7 @@ export async function fetchProfile(): Promise<Profile> {
   return data
 }
 
-export async function updateProfile(input: Profile): Promise<Profile> {
+export async function updateProfile(input: Partial<Profile> & Pick<Profile, 'first_name' | 'last_name'>): Promise<Profile> {
   const { data } = await api.put<Profile>('/profile', input)
   return data
 }

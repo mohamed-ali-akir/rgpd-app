@@ -8,10 +8,11 @@ import { StatusBadge } from '../components/ui/StatusBadge'
 import { DraftEditor } from '../features/requests/DraftEditor'
 import { RequestActions } from '../features/requests/RequestActions'
 import { Timeline } from '../features/requests/Timeline'
+import { VerificationPanel } from '../features/requests/VerificationPanel'
 import { useRequest } from '../features/requests/useRequests'
 import { deadlineText, formatDate } from '../lib/dates'
 import { errorMessage } from '../lib/errors'
-import { DATA_TYPE_LABELS, LEGAL_GROUND_LABELS } from '../lib/labels'
+import { DATA_TYPE_LABELS, KIND_LABELS, LEGAL_GROUND_LABELS } from '../lib/labels'
 import { countSendFailures, type SendNavigationState } from '../features/requests/sending'
 
 export function RequestDetailPage() {
@@ -28,7 +29,17 @@ export function RequestDetailPage() {
   const [failuresAtSend, setFailuresAtSend] = useState<number | null>(
     (location.state as SendNavigationState | null)?.failuresAtSend ?? null,
   )
-  const query = useRequest(id, failuresAtSend)
+  /*
+   * Vérification d'effacement lancée à la main : même principe, on attend qu'une nouvelle vérification
+   * apparaisse. Limite de 2 minutes : si le worker est arrêté, la page n'interroge pas le serveur sans fin.
+   */
+  const [verifyStarted, setVerifyStarted] = useState<{ checksBefore: number; at: number } | null>(null)
+
+  const query = useRequest(id, (r) => {
+    const sending = failuresAtSend !== null && r.status === 'draft' && countSendFailures(r) <= failuresAtSend
+    const verifying = verifyStarted !== null && r.checks.length <= verifyStarted.checksBefore && Date.now() - verifyStarted.at < 120_000
+    return sending || verifying
+  })
   const request = query.data
 
   if (query.isPending) return <Spinner />
@@ -38,6 +49,7 @@ export function RequestDetailPage() {
   const sending = failuresAtSend !== null && request.status === 'draft' && !sendFailed
 
   const waiting = request.status === 'sent' || request.status === 'extended'
+  const verifying = verifyStarted !== null && request.checks.length <= verifyStarted.checksBefore
 
   return (
     <>
@@ -50,7 +62,12 @@ export function RequestDetailPage() {
             </a>
           </span>
         }
-        actions={<StatusBadge status={request.status} />}
+        actions={
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">{KIND_LABELS[request.kind]}</span>
+            <StatusBadge status={request.status} />
+          </div>
+        }
       />
 
       <div className="space-y-6">
@@ -81,12 +98,20 @@ export function RequestDetailPage() {
             </div>
             <div className="sm:col-span-3">
               <dt className="text-slate-500">Données concernées</dt>
-              <dd>{request.data_types.map((t) => DATA_TYPE_LABELS[t]).join(', ')}</dd>
+              <dd>{request.data_types.length > 0 ? request.data_types.map((t) => DATA_TYPE_LABELS[t]).join(', ') : 'Toutes les données me concernant'}</dd>
             </div>
-            <div className="sm:col-span-3">
-              <dt className="text-slate-500">Fondements</dt>
-              <dd>{request.legal_grounds.map((g) => LEGAL_GROUND_LABELS[g]).join(' · ')}</dd>
-            </div>
+            {request.legal_grounds.length > 0 && (
+              <div className="sm:col-span-3">
+                <dt className="text-slate-500">Fondements</dt>
+                <dd>{request.legal_grounds.map((g) => LEGAL_GROUND_LABELS[g]).join(' · ')}</dd>
+              </div>
+            )}
+            {request.details && (
+              <div className="sm:col-span-3">
+                <dt className="text-slate-500">{request.kind === 'rectification' ? 'Correction demandée' : 'Motif'}</dt>
+                <dd className="whitespace-pre-line">{request.details}</dd>
+              </div>
+            )}
           </dl>
         </Card>
 
@@ -94,6 +119,11 @@ export function RequestDetailPage() {
           <DraftEditor request={request} onSent={(sent) => setFailuresAtSend(countSendFailures(sent))} />
         ) : (
           <>
+            <VerificationPanel
+              request={request}
+              waiting={verifying}
+              onStarted={(checksBefore) => setVerifyStarted({ checksBefore, at: Date.now() })}
+            />
             <RequestActions request={request} />
             <details className="rounded-lg bg-white p-5 ring-1 ring-slate-200">
               <summary className="cursor-pointer text-sm font-semibold text-slate-900">Lettre envoyée</summary>

@@ -12,11 +12,11 @@ import {
   sendReminder,
   sendRequest,
   updateRequest,
+  verifyRequest,
   type CreateRequestInput,
   type UpdateRequestInput,
 } from '../../api/requests'
 import type { ErasureRequestDetail, RequestStatus, ResponseOutcome } from '../../types/api'
-import { countSendFailures } from './sending'
 
 /*
  * Clés de cache hiérarchiques : invalider ['requests'] rafraîchit d'un coup
@@ -38,18 +38,16 @@ export function useRequests(status?: RequestStatus) {
 }
 
 /**
- * @param failuresAtSend si un envoi Gmail vient d'être lancé : nombre d'échecs dans l'historique
- *   à ce moment-là (sinon null). L'envoi est fait en arrière-plan par le worker : on relit la
- *   demande toutes les 2 s tant qu'elle est en brouillon ET qu'aucun nouvel échec n'est apparu.
+ * @param keepPolling condition de rafraîchissement : tant qu'elle est vraie, la demande est relue toutes
+ *   les 2 s (envoi Gmail ou vérification en cours dans le worker). Sans condition : aucun rafraîchissement.
  */
-export function useRequest(id: number, failuresAtSend: number | null = null) {
+export function useRequest(id: number, keepPolling?: (request: ErasureRequestDetail) => boolean) {
   return useQuery({
     queryKey: requestKeys.detail(id),
     queryFn: () => fetchRequest(id),
     refetchInterval: (query) => {
       const request = query.state.data
-      const stillSending = failuresAtSend !== null && request?.status === 'draft' && countSendFailures(request) <= failuresAtSend
-      return stillSending ? 2000 : false
+      return request !== undefined && keepPolling?.(request) ? 2000 : false
     },
   })
 }
@@ -103,6 +101,10 @@ export function useRecordResponse(id: number) {
 
 export function usePrepareComplaint(id: number) {
   return useRequestMutation(id, () => prepareComplaint(id))
+}
+
+export function useVerifyRequest(id: number) {
+  return useRequestMutation(id, () => verifyRequest(id))
 }
 
 export function useCloseRequest(id: number) {

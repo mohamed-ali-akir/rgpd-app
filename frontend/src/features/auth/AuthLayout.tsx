@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { DemoBanner } from '../../components/DemoBanner'
 import { LegalDisclaimer } from '../../components/LegalDisclaimer'
 
 interface AuthLayoutProps {
@@ -10,6 +11,8 @@ interface AuthLayoutProps {
 /** Mise en page des écrans de connexion et d'inscription (sans menu). */
 export function AuthLayout({ title, children, footer }: AuthLayoutProps) {
   return (
+    <>
+    <DemoBanner />
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <p className="text-center text-sm font-semibold tracking-wide text-indigo-600 uppercase">Efface-moi</p>
@@ -24,5 +27,6 @@ export function AuthLayout({ title, children, footer }: AuthLayoutProps) {
         </div>
       </div>
     </div>
+    </>
   )
 }

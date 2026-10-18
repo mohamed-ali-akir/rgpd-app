@@ -36,6 +36,8 @@ export function makeOrganization(overrides: Partial<Organization> = {}): Organiz
 export function makeRequest(overrides: Partial<ErasureRequestDetail> = {}): ErasureRequestDetail {
   return {
     id: 42,
+    kind: 'erasure',
+    details: null,
     url: 'https://annuaire.test/camille',
     status: 'draft',
     channel: 'gmail',
@@ -45,6 +47,8 @@ export function makeRequest(overrides: Partial<ErasureRequestDetail> = {}): Eras
     body: 'Corps de la lettre',
     sent_at: null,
     due_at: null,
+    verification: null,
+    next_check_at: null,
     created_at: '2026-10-10T08:00:00+00:00',
     organization: makeOrganization(),
     events: [],
@@ -52,6 +56,7 @@ export function makeRequest(overrides: Partial<ErasureRequestDetail> = {}): Eras
     available_actions: ['edit', 'send', 'delete'],
     response_outcomes: [],
     reminder: null,
+    checks: [],
     ...overrides,
   }
 }

@@ -33,6 +33,17 @@ export type EventType =
   | 'overdue'
   | 'complaint_generated'
   | 'closed'
+  | 'erasure_verified'
+  | 'erasure_still_present'
+  | 'verification_impossible'
+
+/** Droit exercé (V2) : la V1 ne gérait que l'effacement. */
+export type RequestKind = 'erasure' | 'access' | 'rectification' | 'restriction'
+
+/** Vérification que les données ont disparu après un effacement accepté. */
+export type VerificationStatus = 'pending' | 'cleared' | 'still_present' | 'unverifiable'
+
+export type CheckOutcome = 'gone' | 'absent' | 'present' | 'unreachable' | 'blocked'
 
 /** Actions proposées par le back selon le statut (ErasureRequest::availableActions()). */
 export type RequestAction =
@@ -44,6 +55,7 @@ export type RequestAction =
   | 'complaint'
   | 'close'
   | 'download_complaint'
+  | 'verify'
   | 'delete'
 
 export type ResponseOutcome = 'accepted' | 'refused' | 'extended'
@@ -61,6 +73,7 @@ export interface Profile {
   last_name: string
   postal_address: string | null
   phone: string | null
+  auto_scan: boolean
 }
 
 export interface Organization {
@@ -97,6 +110,9 @@ export interface LegalWarning {
 /** Demande telle qu'elle apparaît dans une liste. */
 export interface ErasureRequest {
   id: number
+  kind: RequestKind
+  /** Correction demandée (rectification) ou motif (limitation). */
+  details: string | null
   url: string
   status: RequestStatus
   channel: Channel
@@ -106,8 +122,20 @@ export interface ErasureRequest {
   body: string
   sent_at: string | null
   due_at: string | null
+  verification: VerificationStatus | null
+  next_check_at: string | null
   created_at: string
   organization?: Organization
+}
+
+export interface ErasureCheck {
+  id: number
+  outcome: CheckOutcome
+  failure: string | null
+  http_status: number | null
+  matched: DataType[]
+  manual: boolean
+  checked_at: string
 }
 
 /** Demande complète (page de détail) : historique et règles métier calculées par le back. */
@@ -118,6 +146,7 @@ export interface ErasureRequestDetail extends ErasureRequest {
   available_actions: RequestAction[]
   response_outcomes: ResponseOutcome[]
   reminder: { subject: string; body: string } | null
+  checks: ErasureCheck[]
 }
 
 export interface Dashboard {
@@ -129,4 +158,70 @@ export interface Dashboard {
 export interface ValidationErrorBody {
   message: string
   errors?: Record<string, string[]>
+}
+
+/* --- Scanner (V2) --- */
+
+export type ScanStatus = 'queued' | 'running' | 'completed' | 'failed'
+
+export type FindingSource = 'company_registry' | 'web_search'
+
+export type FindingStatus = 'new' | 'confirmed' | 'rejected' | 'ignored'
+
+export interface SourceReport {
+  status: 'ok' | 'failed' | 'skipped'
+  found?: number
+  error?: string
+}
+
+export interface Scan {
+  id: number
+  trigger: 'manual' | 'scheduled'
+  status: ScanStatus
+  report: Partial<Record<FindingSource, SourceReport>>
+  new_findings_count: number
+  created_at: string
+  started_at: string | null
+  finished_at: string | null
+}
+
+export interface Finding {
+  id: number
+  source: FindingSource
+  url: string
+  domain: string
+  title: string | null
+  snippet: string | null
+  meta: {
+    verified?: boolean
+    unverified_reason?: string
+    siren?: string
+    company?: string
+    role?: string
+  }
+  matched: DataType[]
+  confidence: number
+  status: FindingStatus
+  organization?: Organization
+  erasure_request_id: number | null
+  first_seen_at: string
+  last_seen_at: string
+}
+
+export type SkipReason = 'not_found' | 'not_confirmed' | 'already_created' | 'duplicate_request' | 'unknown_organization'
+
+export interface CreateFromFindingsResult {
+  created: { finding_id: number; request_id: number }[]
+  skipped: { finding_id: number; reason: SkipReason; request_id?: number }[]
+}
+
+export interface GuidedCheck {
+  organization: Pick<Organization, 'id' | 'name' | 'domain' | 'category' | 'category_label'>
+  search_url: string
+}
+
+/** GET /api/meta : informations publiques (mode démo). */
+export interface Meta {
+  demo: boolean
+  demo_credentials: { email: string; password: string } | null
 }

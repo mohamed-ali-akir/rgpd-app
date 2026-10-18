@@ -1,4 +1,14 @@
-import type { DataType, LegalGround, OrganizationCategory, RequestStatus } from '../types/api'
+import type {
+  CheckOutcome,
+  DataType,
+  FindingSource,
+  LegalGround,
+  OrganizationCategory,
+  RequestKind,
+  RequestStatus,
+  SkipReason,
+  VerificationStatus,
+} from '../types/api'
 
 /*
  * Libellés affichés à l'écran. Record<Type, string> oblige à donner un libellé
@@ -66,3 +76,49 @@ export const CATEGORY_LABELS: Record<OrganizationCategory, string> = {
 }
 
 export const CATEGORIES = Object.keys(CATEGORY_LABELS) as OrganizationCategory[]
+
+/* --- V2 --- */
+
+export const KIND_LABELS: Record<RequestKind, string> = {
+  erasure: 'Effacement',
+  access: 'Accès à mes données',
+  rectification: 'Rectification',
+  restriction: 'Limitation du traitement',
+}
+
+export const KIND_DESCRIPTIONS: Record<RequestKind, string> = {
+  erasure: 'Supprimer les données publiées (art. 17, avec opposition art. 21).',
+  access: 'Savoir quelles données l\'organisme détient sur moi et en obtenir une copie (art. 15).',
+  rectification: 'Corriger des données inexactes (art. 16).',
+  restriction: 'Geler l\'utilisation des données, par exemple pendant une contestation (art. 18).',
+}
+
+export const KINDS = Object.keys(KIND_LABELS) as RequestKind[]
+
+export const VERIFICATION_LABELS: Record<VerificationStatus, string> = {
+  pending: 'Vérification en cours',
+  cleared: 'Effacement vérifié',
+  still_present: 'Données toujours en ligne',
+  unverifiable: 'Vérification automatique impossible',
+}
+
+export const CHECK_OUTCOME_LABELS: Record<CheckOutcome, string> = {
+  gone: 'Page supprimée',
+  absent: 'Données absentes de la page',
+  present: 'Données toujours présentes',
+  unreachable: 'Page injoignable',
+  blocked: 'Lecture impossible (site fermé aux robots)',
+}
+
+export const FINDING_SOURCE_LABELS: Record<FindingSource, string> = {
+  company_registry: 'Registre des entreprises',
+  web_search: 'Recherche web',
+}
+
+export const SKIP_REASON_LABELS: Record<SkipReason, string> = {
+  not_found: 'résultat introuvable',
+  not_confirmed: 'pas encore confirmé',
+  already_created: 'demande déjà créée',
+  duplicate_request: 'une demande existe déjà pour cette page',
+  unknown_organization: 'organisme inconnu : ajoutez-le d\'abord',
+}

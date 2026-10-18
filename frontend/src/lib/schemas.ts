@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { CATEGORIES, DATA_TYPES } from './labels'
+import { CATEGORIES, DATA_TYPES, KINDS } from './labels'
 
 /*
  * Schémas zod : ils décrivent la forme valide de chaque formulaire.
@@ -73,6 +73,7 @@ export const profileSchema = z.object({
   last_name: requiredText('Nom requis.', 100),
   postal_address: optionalText(500),
   phone: optionalText(30),
+  auto_scan: z.boolean(),
 })
 // input = ce que contient le formulaire ('' possible) ; output = ce qu'envoie l'API (null).
 export type ProfileFormValues = z.input<typeof profileSchema>
@@ -104,11 +105,27 @@ export const urlStepSchema = z.object({ url: httpUrl })
 export type UrlStepValues = z.infer<typeof urlStepSchema>
 
 /** Étape 3 : données concernées et origine des données. */
-export const dataStepSchema = z.object({
-  data_types: z.array(z.enum(DATA_TYPES)).min(1, 'Cochez au moins un type de donnée.'),
-  self_published: z.boolean(),
-  has_account: z.boolean(),
-  channel: z.enum(['gmail', 'manual']),
-  own_data_confirmed: z.boolean().refine((checked) => checked, 'Vous devez confirmer que la demande concerne vos propres données.'),
-})
+export const dataStepSchema = z
+  .object({
+    kind: z.enum(KINDS),
+    data_types: z.array(z.enum(DATA_TYPES)),
+    details: z.string().trim().max(2000, '2000 caractères maximum.'),
+    self_published: z.boolean(),
+    has_account: z.boolean(),
+    channel: z.enum(['gmail', 'manual']),
+    own_data_confirmed: z.boolean().refine((checked) => checked, 'Vous devez confirmer que la demande concerne vos propres données.'),
+  })
+  // Règles qui dépendent du droit choisi (les mêmes que côté serveur, StoreErasureRequestRequest).
+  .superRefine((values, ctx) => {
+    if (values.kind !== 'access' && values.data_types.length === 0) {
+      ctx.addIssue({ code: 'custom', path: ['data_types'], message: 'Cochez au moins un type de donnée.' })
+    }
+    if ((values.kind === 'rectification' || values.kind === 'restriction') && values.details === '') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['details'],
+        message: values.kind === 'rectification' ? 'Indiquez la correction demandée.' : 'Indiquez le motif de la limitation.',
+      })
+    }
+  })
 export type DataStepValues = z.input<typeof dataStepSchema>

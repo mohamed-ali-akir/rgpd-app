@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button'
 import { buttonClasses } from '../../components/ui/buttonClasses'
 import { errorMessage } from '../../lib/errors'
 import { USER_KEY, useUser } from '../auth/useAuth'
+import { useIsDemo } from '../meta/useMeta'
 
 /** Messages renvoyés par le back dans l'URL après le retour de Google (?google=...). */
 const CALLBACK_MESSAGES: Record<string, { tone: 'success' | 'error' | 'warning'; text: string }> = {
@@ -20,6 +21,7 @@ export function GmailConnection() {
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
   const callback = CALLBACK_MESSAGES[searchParams.get('google') ?? '']
+  const isDemo = useIsDemo()
 
   const disconnect = useMutation({
     mutationFn: () => disconnectGoogle(),
@@ -34,7 +36,11 @@ export function GmailConnection() {
         L'application demande uniquement l'autorisation d'<strong>envoyer</strong> des e-mails en votre nom (scope
         gmail.send). Elle ne peut pas lire votre boîte de réception. Vous pouvez retirer cet accès à tout moment.
       </p>
-      {user?.google_email ? (
+      {isDemo ? (
+        <Alert tone="info">
+          Démo : un compte Gmail fictif est connecté ({user?.google_email}). Les envois sont simulés, aucun e-mail ne part.
+        </Alert>
+      ) : user?.google_email ? (
         <div className="flex flex-wrap items-center gap-3">
           <span>
             Connecté : <strong>{user.google_email}</strong>

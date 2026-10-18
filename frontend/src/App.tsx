@@ -1,17 +1,29 @@
+import { lazy } from 'react'
 import { Route, Routes } from 'react-router'
 import { Layout } from './components/Layout'
 import { GuestOnly, RequireAuth } from './features/auth/RouteGuards'
-import { DashboardPage } from './pages/DashboardPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
-import { NewRequestPage } from './pages/NewRequestPage'
 import { NotFoundPage } from './pages/NotFoundPage'
-import { OrganizationsPage } from './pages/OrganizationsPage'
-import { PrivacyPage } from './pages/PrivacyPage'
 import { RegisterPage } from './pages/RegisterPage'
-import { RequestDetailPage } from './pages/RequestDetailPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
-import { SettingsPage } from './pages/SettingsPage'
+
+/*
+ * Pages de l'espace connecté chargées à la demande (code splitting) : le visiteur qui arrive
+ * sur la connexion ne télécharge pas l'assistant, le scanner, etc. Chaque page devient un
+ * fichier JS séparé, téléchargé au premier affichage puis gardé en cache par le navigateur.
+ * La Suspense qui affiche "Chargement…" pendant ce temps est dans Layout, autour de l'Outlet.
+ */
+const page = <K extends string>(load: () => Promise<Record<K, React.ComponentType>>, name: K) =>
+  lazy(async () => ({ default: (await load())[name] }))
+
+const DashboardPage = page(() => import('./pages/DashboardPage'), 'DashboardPage')
+const NewRequestPage = page(() => import('./pages/NewRequestPage'), 'NewRequestPage')
+const RequestDetailPage = page(() => import('./pages/RequestDetailPage'), 'RequestDetailPage')
+const OrganizationsPage = page(() => import('./pages/OrganizationsPage'), 'OrganizationsPage')
+const ScannerPage = page(() => import('./pages/ScannerPage'), 'ScannerPage')
+const SettingsPage = page(() => import('./pages/SettingsPage'), 'SettingsPage')
+const PrivacyPage = page(() => import('./pages/PrivacyPage'), 'PrivacyPage')
 
 /**
  * Table des routes. Les routes "imbriquées" partagent un parent :
@@ -35,6 +47,7 @@ export function App() {
           <Route path="/requests/new" element={<NewRequestPage />} />
           <Route path="/requests/:id" element={<RequestDetailPage />} />
           <Route path="/organizations" element={<OrganizationsPage />} />
+          <Route path="/scanner" element={<ScannerPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
         </Route>

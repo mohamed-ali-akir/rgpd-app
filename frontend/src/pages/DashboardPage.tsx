@@ -30,9 +30,14 @@ export function DashboardPage() {
         title="Tableau de bord"
         description="Suivez vos demandes d'effacement et leurs délais légaux."
         actions={
-          <Link to="/requests/new" className={buttonClasses('primary')}>
-            Nouvelle demande
-          </Link>
+          <>
+            <Link to="/scanner" className={buttonClasses('secondary')}>
+              Rechercher mes données
+            </Link>
+            <Link to="/requests/new" className={buttonClasses('primary')}>
+              Nouvelle demande
+            </Link>
+          </>
         }
       />
 

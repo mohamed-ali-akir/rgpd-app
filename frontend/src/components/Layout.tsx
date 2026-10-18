@@ -1,13 +1,16 @@
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { useLogout, useResendVerification, useUser } from '../features/auth/useAuth'
+import { DemoBanner } from './DemoBanner'
 import { LegalDisclaimer } from './LegalDisclaimer'
 import { Alert } from './ui/Alert'
 import { Button } from './ui/Button'
+import { Spinner } from './ui/Spinner'
 
 const NAV = [
   { to: '/', label: 'Tableau de bord', end: true },
   { to: '/requests/new', label: 'Nouvelle demande', end: false },
+  { to: '/scanner', label: 'Mes données en ligne', end: false },
   { to: '/organizations', label: 'Organismes', end: false },
   { to: '/settings', label: 'Paramètres', end: false },
 ]
@@ -27,6 +30,7 @@ export function Layout() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <DemoBanner />
       <header className="border-b border-slate-200 bg-white">
         {/*
           Sur mobile : logo et déconnexion sur la 1re ligne, menu sur la 2e (défilement horizontal si besoin).
@@ -78,7 +82,9 @@ export function Layout() {
           </div>
         )}
         {/* Outlet : emplacement où React Router affiche la page de la route courante. */}
-        <Outlet />
+        <Suspense fallback={<Spinner />}>
+          <Outlet />
+        </Suspense>
       </main>
 
       <footer className="border-t border-slate-200 bg-white">

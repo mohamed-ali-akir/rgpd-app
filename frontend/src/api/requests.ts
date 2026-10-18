@@ -5,6 +5,7 @@ import type {
   ErasureRequest,
   ErasureRequestDetail,
   LegalGround,
+  RequestKind,
   RequestStatus,
   ResponseOutcome,
 } from '../types/api'
@@ -13,6 +14,8 @@ import { api } from './client'
 export interface CreateRequestInput {
   url: string
   organization_id: number
+  kind: RequestKind
+  details?: string
   data_types: DataType[]
   self_published: boolean
   has_account: boolean
@@ -25,6 +28,7 @@ export interface UpdateRequestInput {
   body?: string
   data_types?: DataType[]
   legal_grounds?: LegalGround[]
+  details?: string
   channel?: Channel
   regenerate_letter?: boolean
 }
@@ -89,6 +93,12 @@ export async function prepareComplaint(id: number): Promise<ErasureRequestDetail
 
 export async function closeRequest(id: number): Promise<ErasureRequestDetail> {
   const { data } = await api.post<ErasureRequestDetail>(`/requests/${id}/close`)
+  return data
+}
+
+/** Vérification immédiate de l'effacement (en arrière-plan : la page est relue par le serveur). */
+export async function verifyRequest(id: number): Promise<ErasureRequestDetail> {
+  const { data } = await api.post<ErasureRequestDetail>(`/requests/${id}/verify`)
   return data
 }
 

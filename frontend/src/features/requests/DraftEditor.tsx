@@ -32,6 +32,9 @@ export function DraftEditor({ request, onSent }: DraftEditorProps) {
   const markSent = useMarkSent(request.id)
 
   const [grounds, setGrounds] = useState<LegalGround[]>(request.legal_grounds)
+  const [details, setDetails] = useState(request.details ?? '')
+  const isErasure = request.kind === 'erasure'
+  const hasDetails = request.kind === 'rectification' || request.kind === 'restriction'
   const [sentAt, setSentAt] = useState(todayIsoDate())
   const [copied, setCopied] = useState(false)
 
@@ -57,7 +60,8 @@ export function DraftEditor({ request, onSent }: DraftEditorProps) {
 
   const regenerate = () => {
     if (isDirty && !window.confirm('Régénérer la lettre remplacera vos modifications. Continuer ?')) return
-    update.mutate({ legal_grounds: grounds, regenerate_letter: true })
+    // Seuls les champs propres au droit exercé sont envoyés (le serveur refuse les autres).
+    update.mutate(isErasure ? { legal_grounds: grounds, regenerate_letter: true } : { details, regenerate_letter: true })
   }
 
   const copyLetter = async () => {
@@ -91,18 +95,31 @@ export function DraftEditor({ request, onSent }: DraftEditorProps) {
       )}
       <LegalDisclaimer />
 
-      <Card title="Fondements juridiques">
-        <div className="grid gap-2 sm:grid-cols-2">
-          {LEGAL_GROUNDS.map((ground) => (
-            <Checkbox key={ground} label={LEGAL_GROUND_LABELS[ground]} checked={grounds.includes(ground)} onChange={() => toggleGround(ground)} />
-          ))}
-        </div>
-        <div className="mt-3">
-          <Button variant="secondary" onClick={regenerate} loading={update.isPending} disabled={grounds.length === 0}>
-            Régénérer la lettre avec ces fondements
-          </Button>
-        </div>
-      </Card>
+      {isErasure && (
+        <Card title="Fondements juridiques">
+          <div className="grid gap-2 sm:grid-cols-2">
+            {LEGAL_GROUNDS.map((ground) => (
+              <Checkbox key={ground} label={LEGAL_GROUND_LABELS[ground]} checked={grounds.includes(ground)} onChange={() => toggleGround(ground)} />
+            ))}
+          </div>
+          <div className="mt-3">
+            <Button variant="secondary" onClick={regenerate} loading={update.isPending} disabled={grounds.length === 0}>
+              Régénérer la lettre avec ces fondements
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {hasDetails && (
+        <Card title={request.kind === 'rectification' ? 'Correction demandée' : 'Motif de la limitation'}>
+          <TextareaField label="Texte repris dans la lettre" rows={3} value={details} onChange={(e) => setDetails(e.target.value)} />
+          <div className="mt-3">
+            <Button variant="secondary" onClick={regenerate} loading={update.isPending} disabled={details.trim() === ''}>
+              Régénérer la lettre
+            </Button>
+          </div>
+        </Card>
+      )}
 
       <Card title="Votre lettre">
         <form onSubmit={handleSubmit((values) => update.mutate(values))} className="space-y-4">

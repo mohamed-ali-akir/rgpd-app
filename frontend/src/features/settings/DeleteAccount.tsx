@@ -7,11 +7,13 @@ import { Button } from '../../components/ui/Button'
 import { InputField } from '../../components/ui/Field'
 import { errorMessage } from '../../lib/errors'
 import { USER_KEY } from '../auth/useAuth'
+import { useIsDemo } from '../meta/useMeta'
 
 export function DeleteAccount() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [password, setPassword] = useState('')
+  const isDemo = useIsDemo()
   const remove = useMutation({
     mutationFn: (password: string) => deleteAccount(password),
     onSuccess: () => {
@@ -26,6 +28,10 @@ export function DeleteAccount() {
     if (window.confirm('Supprimer définitivement votre compte et toutes vos demandes ? Cette action est irréversible.')) {
       remove.mutate(password)
     }
+  }
+
+  if (isDemo) {
+    return <p className="text-sm text-slate-600">La suppression du compte est désactivée dans la démo (le compte est partagé par tous les visiteurs).</p>
   }
 
   return (
