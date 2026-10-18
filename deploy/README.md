@@ -8,7 +8,7 @@ Fichiers de ce dossier :
 | Fichier | Rôle |
 |---|---|
 | `nginx.conf` | SPA à la racine, `/api` et `/sanctum` vers Laravel, sur le même domaine |
-| `rgpd-queue.service` | Worker de la file d'attente (envois Gmail), relancé par systemd |
+| `rgpd-queue.service` | Worker de la file d'attente (envois Gmail, scans, vérifications), relancé par systemd ; `--timeout=650` car un scan peut durer 10 min |
 | `crontab` | La ligne de cron qui lance le planificateur Laravel chaque minute |
 | `deploy.sh` | Mise à jour : `git pull`, dépendances, migrations, caches, build du front |
 | `../backend/.env.production.example` | Modèle du `.env` de production |
@@ -77,14 +77,44 @@ sudo crontab -u www-data /var/www/rgpd-app/deploy/crontab
 Dans la Google Cloud Console, ajouter l'URI de redirection `https://efface-moi.example/api/auth/google/callback`
 et le domaine dans l'écran de consentement. Voir la section « Configurer Gmail » du README principal.
 
-## 7. Vérifications
+## 7. Recherche web (SearXNG, facultatif)
+
+Sans cette étape, le scanner fonctionne avec le seul registre des entreprises (`SEARCH_PROVIDER=none`).
+SearXNG tourne dans un conteneur Docker, accessible **uniquement depuis le serveur** (127.0.0.1) :
+
+```bash
+sudo apt install -y docker.io
+sudo mkdir -p /etc/searxng
+sudo tee /etc/searxng/settings.yml > /dev/null <<EOF
+use_default_settings: true
+server:
+  secret_key: "$(openssl rand -hex 32)"
+  limiter: false          # instance privée : seul Laravel l'interroge
+search:
+  formats: [html, json]   # l'API JSON est désactivée par défaut
+EOF
+sudo docker run -d --name searxng --restart unless-stopped \
+  -p 127.0.0.1:8888:8080 -v /etc/searxng:/etc/searxng searxng/searxng
+curl -s 'http://127.0.0.1:8888/search?q=test&format=json' | head -c 200   # doit renvoyer du JSON
+```
+
+Puis dans `backend/.env` : `SEARCH_PROVIDER=searxng` et `SEARXNG_URL=http://127.0.0.1:8888`, et enfin
+`php artisan config:cache`. Le port n'est pas ouvert sur Internet : personne d'autre ne peut utiliser l'instance.
+
+## 8. Mode démo (facultatif)
+
+Pour une mise en ligne publique sans risque (portfolio) : `APP_DEMO=true` dans `.env`, puis `php artisan config:cache`
+et `php artisan demo:reset`. Les envois et le scanner sont alors fictifs, et le compte de démo est réinitialisé chaque nuit.
+
+## 9. Vérifications
 
 - [ ] `https://efface-moi.example` affiche la page de connexion, `http://` redirige vers `https://`
 - [ ] Inscription → l'e-mail de vérification arrive (SMTP) et le lien fonctionne
 - [ ] Connexion Gmail → retour sur Paramètres avec « Gmail est connecté »
 - [ ] Envoi d'une demande de test vers votre propre adresse : statut « Envoyée » après quelques secondes
 - [ ] `systemctl status rgpd-queue` : actif
-- [ ] `php artisan schedule:list` : les trois tâches planifiées apparaissent
+- [ ] `php artisan schedule:list` : les tâches planifiées apparaissent (délais, vérifications, scans mensuels, purges)
+- [ ] Page « Mes données en ligne » → « Lancer ma première recherche » : le rapport s'affiche après quelques minutes
 - [ ] `APP_DEBUG=false` : une URL inexistante sous `/api` renvoie une erreur JSON sans détail technique
 
 ## Mises à jour

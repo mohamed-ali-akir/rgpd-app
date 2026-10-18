@@ -173,6 +173,85 @@ Conseil : pour chaque fichier, essaie d'expliquer à voix haute ce que fait chaq
 
 ---
 
+## Jalon 7 (V2) — Autres droits, lecture web sécurisée, vérification de l'effacement
+
+**À lire**
+1. `backend/app/Enums/RequestKind.php` : chaque droit porte son article, son vocabulaire et ses champs requis.
+2. `backend/app/Actions/CreateDraftRequest.php` et `DraftInput.php` : **le seul chemin** de création d'un brouillon
+   (assistant, scanner, démo). Les lettres sont générées hors transaction, l'insertion et l'événement dedans.
+3. `backend/app/Services/LetterGenerator.php` (`initial()` choisit la lettre selon le droit) et `tests/Unit/RequestKindLetterTest.php`.
+4. `backend/app/Services/Web/` dans cet ordre : `UrlGuard`, `GuardedUrl`, `SafeHttpClient`, `RobotsTxt`, `RobotsPolicy`,
+   `HtmlTextExtractor`, `PageFetcher`. Puis `tests/Unit/WebSafetyTest.php` et `tests/Feature/PageFetcherTest.php`.
+5. `backend/app/Services/Identity/IdentityMatcher.php` : reconnaître nom, e-mail et téléphone dans un texte (accents,
+   espaces, formats `06 12…` / `+33 6…`).
+6. `backend/app/Services/ErasureVerifier.php`, `Jobs/VerifyErasureJob.php`, `Console/Commands/VerifyErasuresCommand.php`,
+   puis `ErasureRequest::transitionTo()` (une acceptation d'effacement programme la vérification).
+7. Front : `features/requests/wizard/DataStep.tsx` (`useWatch`), `lib/schemas.ts` (`superRefine`), `features/requests/VerificationPanel.tsx`.
+
+**Notions**
+- *SSRF (Server-Side Request Forgery)* : si le serveur lit une URL donnée par l'utilisateur, un attaquant peut viser
+  `http://127.0.0.1` ou `169.254.169.254` (métadonnées du cloud). `UrlGuard` résout le nom DNS et refuse si **une seule**
+  des adresses n'est pas publique (plages privées, réservées, IPv6 local, IPv4 cachée dans de l'IPv6).
+- *DNS rebinding* : le nom peut répondre une IP publique au contrôle puis une IP privée à la connexion. Parade : on
+  **fige** l'IP vérifiée pour la requête (`CURLOPT_RESOLVE`) ; chaque redirection est re-vérifiée de la même façon.
+- *robots.txt (RFC 9309)* : la règle la plus longue gagne, `Allow` l'emporte à égalité ; un robots.txt en erreur 5xx
+  signifie « tout interdit ». Mis en cache 24 h.
+- *Lecture bornée* : on lit le corps en flux et on s'arrête à 2 Mo, avec des délais de connexion et de lecture.
+- *Vérification* : `gone` (404/410), `absent`, `present`, `unreachable`, `blocked`. Plusieurs « présent » d'affilée
+  donnent `still_present` et une notification ; trop d'échecs donnent `unverifiable`. Chaque contrôle est enregistré
+  dans `erasure_checks` (jamais modifié).
+- *`superRefine` (zod)* : règle qui dépend de plusieurs champs (le détail n'est obligatoire que pour la rectification et la limitation).
+
+**Questions possibles**
+- *Pourquoi vérifier toutes les IP du nom DNS et pas seulement la première ?* Le client HTTP pourrait se connecter à n'importe laquelle.
+- *Pourquoi une seule action `CreateDraftRequest` ?* Trois points d'entrée créent des demandes : une règle (par
+  exemple l'avertissement « contact non vérifié ») ne peut pas être oubliée dans l'un d'eux.
+- *Pourquoi ne pas faire la requête HTTP dans la transaction ?* Une transaction doit être courte : elle bloque des
+  lignes (et toute la base en SQLite).
+- *Et si la page charge les données en JavaScript ?* Le texte lu ne les contient pas : c'est une limite connue,
+  documentée, et l'utilisateur peut toujours relancer ou saisir la CNIL.
+
+---
+
+## Jalon 8 (V2) — Scanner, file d'attente longue, mode démo
+
+**À lire**
+1. `backend/app/Services/Search/` : l'interface `SearchProvider` et ses trois implémentations (`Null`, `Fake`, `Searxng`).
+2. `backend/app/Services/Scanner/Sources/` : `ScanSource`, `CompanyRegistrySource`, `WebSearchSource`, `SourceSkippedException`.
+3. `backend/app/Services/Scanner/Scanner.php` puis `FindingRecorder.php` (empreinte d'URL unique, confiance).
+4. `backend/app/Jobs/RunScanJob.php`, `Http/Controllers/Api/ScanController.php` (verrou, limite mensuelle),
+   `Console/Commands/RunScheduledScansCommand.php`.
+5. `backend/app/Actions/CreateRequestsFromFindings.php` (une transaction et un verrou par résultat, motifs d'exclusion).
+6. `backend/app/Providers/AppServiceProvider.php` : le conteneur choisit les implémentations (et les sources en démo).
+7. Mode démo : `Http/Middleware/BlockInDemo.php`, `Services/Demo/DemoScanSource.php`, `Console/Commands/ResetDemoCommand.php`.
+8. `tests/Unit/QueueConfigurationTest.php` : l'invariant entre la durée d'un scan et `retry_after`.
+9. Front : `features/scanner/useScanner.ts`, `pages/ScannerPage.tsx`, `features/meta/useMeta.ts`, `components/DemoBanner.tsx`.
+
+**Notions**
+- *Inversion de dépendance* : le scanner dépend d'interfaces, pas de SearXNG ni d'une API précise. Changer de moteur,
+  c'est écrire une classe et changer une ligne dans `AppServiceProvider`. Les tests utilisent les versions `Fake`.
+- *Binding contextuel* : `when(Scanner::class)->needs('$sources')->give(...)` fournit au constructeur la liste des sources.
+- *Isolation des pannes* : chaque source est dans son propre `try` ; le rapport du scan indique `ok`, `failed` ou
+  `skipped` par source, et une panne de l'une n'empêche pas les autres.
+- *Idempotence* : index unique `(user_id, url_hash)` (un même résultat n'est jamais en double), `Cache::lock` au
+  lancement (double clic), `ShouldBeUnique` sur les jobs, et un scan déjà terminé n'est pas relancé si le job est rejoué.
+- *`retry_after` et `--timeout`* : si un job dure plus que `retry_after`, la file le croit perdu et le relance en
+  parallèle. D'où : budget du scan 240 s < timeout du job 600 s < `--timeout` du worker 650 s < `retry_after` 700 s.
+- *Minimisation* : on ne cherche que l'identité du profil (pas de champ libre : impossible de chercher quelqu'un
+  d'autre), avec un e-mail vérifié obligatoire ; titres et extraits sont chiffrés ; les résultats écartés sont purgés (`Prunable`).
+- *Mise à jour optimiste* (front) : « C'est moi » change l'écran tout de suite (`onMutate`), et revient en arrière si l'API refuse (`onError`).
+
+**Questions possibles**
+- *Pourquoi l'utilisateur doit-il confirmer chaque résultat ?* Homonymes : une demande envoyée pour la page d'un
+  autre « Camille Martin » serait une erreur, et l'organisme ne peut pas effacer les données d'un tiers à notre demande.
+- *Pourquoi pas Google ?* Son API de recherche n'accepte plus de nouveaux clients et le scraping est interdit ; SearXNG est libre et gratuit.
+- *Pourquoi le mode démo ne fait-il aucun appel réseau ?* Le compte est partagé : un visiteur ne doit ni envoyer de vrais
+  e-mails, ni déclencher des recherches sur un nom, même fictif. `demo:reset` construit son scanner avec la seule source fictive.
+- *Que se passe-t-il si SearXNG est en panne ?* La source web est notée « indisponible », le registre des entreprises
+  fonctionne quand même, et le scan se termine normalement.
+
+---
+
 ## Les notions React du projet
 
 | Notion | Où la voir | En une phrase |
@@ -194,6 +273,10 @@ Conseil : pour chaque fichier, essaie d'expliquer à voix haute ce que fait chaq
 | Polling | `useRequest` (`refetchInterval`) | Relire la demande toutes les 2 s pendant que le worker envoie l'e-mail. |
 | react-hook-form + zod | `LoginPage.tsx`, `DataStep.tsx`, `lib/schemas.ts` | Le schéma zod valide et donne le type TypeScript ; `register()` branche les champs. |
 | Erreurs serveur → champs | `lib/errors.ts` (`applyServerErrors`) | Les erreurs 422 de Laravel s'affichent sous les bons champs. |
+| `useWatch` | `DataStep.tsx` | S'abonner à un champ du formulaire pour adapter l'affichage (le droit choisi). |
+| Mise à jour optimiste | `useDecideFinding` dans `useScanner.ts` | Modifier le cache avant la réponse du serveur, et restaurer l'ancien en cas d'erreur. |
+| Polling conditionnel | `useScans`, `RequestDetailPage.tsx` | `refetchInterval` renvoie un délai tant qu'un traitement est en cours, `false` ensuite. |
+| `lazy` + `Suspense` | `App.tsx`, `Layout.tsx` | Chaque page est un fichier JS séparé, téléchargé au premier affichage ; `Suspense` affiche « Chargement… » en attendant. |
 
 **Pourquoi TanStack Query plutôt que `useEffect` + `fetch` ?** Il gère pour nous le cache partagé, les états de
 chargement et d'erreur, les nouvelles tentatives et le rafraîchissement après une modification. Le code serait sinon
@@ -208,5 +291,11 @@ répété dans chaque page.
 - **Fonctionnels (API)** : authentification et vérification d'e-mail, Policy sur chaque route, création et modification
   de brouillon, envoi via `FakeSender`, e-mail vérifié obligatoire, limite de 10 envois, relances, réponses, plainte et
   PDF, commande des délais, purge à 12 mois, export, suppression du compte en cascade, chiffrement en base, messages en français.
+- **V2 (back)** : protection SSRF (chaque plage d'IP, IPv4 dans IPv6, redirections, IP figée), robots.txt, lecture
+  bornée, reconnaissance d'identité, chaque source du scanner et sa panne, idempotence, limites, autorisations,
+  vérification de l'effacement (chaque issue), lettres des autres droits (snapshots), mode démo sans aucune requête
+  réseau, invariant de la file d'attente. `Http::preventStrayRequests()` fait échouer tout test qui tenterait un vrai appel HTTP.
+- **V2 (front)** : page du scanner (décision, retour arrière si refus, création groupée et motifs), autres droits dans
+  l'assistant, panneau de vérification, connexion en démo.
 - **Front** : l'assistant (validation de chaque étape, canal Gmail désactivé sans e-mail, création du brouillon), les
   actions de la page de détail selon le statut, le calcul des jours restants.

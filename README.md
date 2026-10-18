@@ -25,6 +25,24 @@ Projet réalisé dans le cadre du BTS SIO option SLAM (épreuve E6).
 - Historique horodaté de chaque demande (jamais modifié)
 - Export de ses données (JSON), suppression du compte en cascade, purge automatique après 12 mois
 
+## Fonctionnalités (V2)
+
+Le cahier des charges complet est dans [docs/V2.md](docs/V2.md).
+
+- **Scanner « Mes données en ligne »** : recherche du nom, de l'e-mail et du téléphone du titulaire du compte dans le
+  registre des entreprises (API publique Recherche d'entreprises, gratuite, sans clé) et sur le web (via une instance
+  [SearXNG](https://docs.searxng.org)). Les pages trouvées sont relues pour confirmer la présence des données, avec un
+  score de confiance. L'utilisateur confirme chaque résultat (homonymes), et les résultats confirmés deviennent des brouillons
+  en un clic. Rien n'est envoyé automatiquement. Une recherche mensuelle automatique est disponible sur option.
+- **Vérifications guidées** pour les sites qui refusent la lecture automatique (réseaux sociaux…) : un lien de recherche par site.
+- **Vérification de l'effacement** : après une réponse positive, l'application relit la page (après 3 jours, puis toutes
+  les semaines) et signale si les données sont toujours en ligne, avec relance ou plainte possible.
+- **Autres droits** : accès (art. 15), rectification (art. 16) et limitation (art. 18), avec leurs propres lettres.
+- **Mode démo** (`APP_DEMO=true`) : compte partagé et données fictives, aucun e-mail ni recherche réelle, inscription et
+  Gmail désactivés, réinitialisation chaque nuit.
+- **Lecture web sécurisée** : protection SSRF (IP publiques uniquement, IP figée contre le DNS rebinding, redirections
+  vérifiées une à une), respect de robots.txt, taille et durée limitées.
+
 ## Stack
 
 | Couche | Choix |
@@ -33,8 +51,9 @@ Projet réalisé dans le cadre du BTS SIO option SLAM (épreuve E6).
 | Back | Laravel 13 (API REST), Sanctum (SPA : cookies + CSRF), Socialite (OAuth Google), dompdf |
 | Données | MySQL en production, SQLite en développement et en mémoire pour les tests |
 | Asynchrone | File d'attente Laravel (driver `database`), planificateur Laravel (cron) |
-| Tests | Pest (back, 141 tests), Vitest + React Testing Library (front, 25 tests) |
-| CI | GitHub Actions : Pint, Pest (SQLite et MySQL 8.4), tsc, ESLint, Vitest, build Vite |
+| Tests | Pest (back, 279 tests), Vitest + React Testing Library (front, 41 tests) ; aucun test n'accède au réseau |
+| Qualité | Larastan (PHPStan niveau 6), Pint, ESLint, TypeScript strict |
+| CI | GitHub Actions : Pint, Larastan, Pest (SQLite et MySQL 8.4), tsc, ESLint, Vitest, build Vite |
 
 ## Architecture
 
@@ -43,9 +62,13 @@ navigateur ──► Nginx (un seul domaine)
                 ├── /              → build React (frontend/dist)
                 └── /api, /sanctum → Laravel (backend/public/index.php)
                                        ├── contrôleurs → services métier → modèles Eloquent → MySQL
-                                       └── jobs (envoi Gmail) → table "jobs" ← worker (queue:work)
-cron (chaque minute) → schedule:run → requests:check-deadlines (8 h) + model:prune (purge 12 mois)
+                                       └── jobs (envoi Gmail, scan, vérification) → table "jobs" ← worker (queue:work)
+cron (chaque minute) → schedule:run → requests:check-deadlines (8 h), requests:verify-erasures (9 h),
+                                      scans:run-scheduled (10 h), model:prune, demo:reset (3 h, démo seulement)
 ```
+
+- **Dépendances externes derrière des interfaces** (`MailSender`, `SearchProvider`, `ScanSource`, `HostResolver`) :
+  chaque implémentation réelle a un double « fake » pour les tests et la démo, et se choisit dans `AppServiceProvider`.
 
 - **Monorepo** : `backend/` (Laravel) et `frontend/` (React).
 - **Même domaine** pour le SPA et l'API : condition pour que le cookie de session Sanctum soit envoyé.
@@ -72,8 +95,8 @@ php artisan key:generate
 php artisan migrate --seed      # crée database/database.sqlite + organismes + compte de démo
 php artisan serve               # http://127.0.0.1:8000
 
-# Dans un 2e terminal : le worker qui exécute les envois Gmail
-cd backend; php artisan queue:work
+# Dans un 2e terminal : le worker qui exécute les envois Gmail, les scans et les vérifications
+cd backend; php artisan queue:work --timeout=650
 
 # Dans un 3e terminal : le front
 cd frontend
@@ -92,8 +115,9 @@ En développement, les e-mails de l'application (vérification, alertes de déla
 ### Tests
 
 ```bash
-cd backend; vendor/bin/pest           # 141 tests
-cd frontend; npm test                 # 25 tests
+cd backend; vendor/bin/pest           # 279 tests
+cd backend; vendor/bin/phpstan analyse --memory-limit=1G
+cd frontend; npm test                 # 41 tests
 cd frontend; npm run typecheck; npm run lint; npm run build
 ```
 
@@ -120,6 +144,32 @@ cd backend; php artisan requests:check-deadlines
 Si un utilisateur retire l'accès, l'envoi échoue proprement : l'événement « Échec de l'envoi » s'affiche, la connexion
 Gmail est supprimée et l'utilisateur est invité à la refaire (ou à passer en envoi manuel).
 
+## Configurer la recherche web du scanner (SearXNG)
+
+Il n'existe plus d'API gratuite de recherche sur tout le web : Google Custom Search n'accepte plus de nouveaux clients,
+l'API Bing a fermé, et Brave exige une carte bancaire. Le scanner passe donc par **SearXNG**, un métamoteur libre qu'on
+héberge soi-même (gratuit). Il est derrière l'interface `SearchProvider`, ce qui permet de changer de moteur sans toucher au scanner.
+
+| `SEARCH_PROVIDER` | Effet |
+|---|---|
+| `none` (défaut) | Pas de recherche web : le scanner n'interroge que le registre des entreprises, et le rapport indique « non configurée » |
+| `searxng` | Requêtes vers `SEARXNG_URL` (format JSON à activer dans la configuration de SearXNG) |
+| `fake` | Résultats fictifs, pour le développement |
+
+L'installation par Docker est décrite dans [deploy/README.md](deploy/README.md#7-recherche-web-searxng-facultatif).
+
+## Mode démo
+
+Avec `APP_DEMO=true` :
+- la page de connexion affiche les identifiants de démo (`demo@example.test` / `demo-efface-moi`) et un bouton « Essayer la démo » ;
+- un bandeau rappelle que tout est fictif ;
+- les envois passent par `FakeSender` : aucun e-mail ne part ;
+- le scanner n'utilise que des résultats fictifs, sans aucun accès réseau ;
+- l'inscription, le mot de passe oublié, la connexion Gmail et la suppression du compte sont désactivés (middleware `not-in-demo`) ;
+- `demo:reset` remet chaque nuit à 3 h des demandes à chaque étape et des résultats à examiner.
+
+En local : `php artisan demo:reset --force` crée ces données sans activer le mode démo.
+
 ## Mise en production
 
 Le guide pas à pas (VPS Ubuntu, Nginx, PHP-FPM, MySQL, HTTPS, worker, cron, sauvegardes) est dans
@@ -131,7 +181,9 @@ En résumé :
   `SANCTUM_STATEFUL_DOMAINS=votre-domaine`, `SESSION_SECURE_COOKIE=true`, `DB_CONNECTION=mysql` (+ identifiants),
   un vrai SMTP pour les e-mails de l'application, `MAIL_SENDER=gmail`.
 - `php artisan migrate --force` puis `php artisan db:seed --class=OrganizationSeeder --force`.
-- Worker permanent (systemd ou Supervisor) : `php artisan queue:work --tries=3`.
+- Worker permanent (systemd ou Supervisor) : `php artisan queue:work --tries=3 --timeout=650` (un scan peut durer
+  jusqu'à 10 minutes ; `DB_QUEUE_RETRY_AFTER=700` doit rester supérieur à ce délai, un test le vérifie).
+- Recherche web : `SEARCH_PROVIDER=searxng` et `SEARXNG_URL` (voir ci-dessous). Sans cela, le scanner n'utilise que le registre des entreprises.
 - Cron : `* * * * * cd /var/www/rgpd-app/backend && php artisan schedule:run >> /dev/null 2>&1`.
 - Front : `cd frontend && npm ci && npm run build` (Nginx sert `frontend/dist`).
 
@@ -162,6 +214,9 @@ L'application applique à ses propres utilisateurs les principes qu'elle les aid
   réinitialisation du mot de passe expirés purgés chaque jour (`auth:clear-resets`).
 - **Pas de données personnelles dans les journaux** : les messages d'erreur et les sorties de commandes n'en contiennent
   pas, et la file d'attente ne stocke que l'identifiant de la demande.
+- **Scanner limité au titulaire du compte** : on ne peut chercher que l'identité de son propre profil (pas de champ libre),
+  avec un e-mail vérifié et 4 recherches par mois au maximum. Titres et extraits des résultats sont chiffrés, et les
+  résultats écartés sont supprimés 6 mois après la décision.
 - Une page « Ce que nous faisons de vos données » est accessible dans l'application.
 
 ## Choix techniques et écarts au cahier des charges
@@ -179,9 +234,15 @@ L'application applique à ses propres utilisateurs les principes qu'elle les aid
 | Profil créé à l'inscription | Prénom et nom demandés à l'inscription | Les lettres en ont besoin dès la première demande |
 | Mot de passe oublié | Ajouté (`POST /api/forgot-password`, `POST /api/reset-password`) | Indispensable pour une vraie mise en ligne |
 | Nom de l'application | « Efface-moi » (provisoire) | À remplacer librement (`APP_NAME`, `index.html`) |
+| Recherche web (V2) | SearXNG auto-hébergé | Seule solution gratuite et durable (voir plus haut) |
+| Réseaux sociaux (V2) | Vérifications guidées plutôt que lecture automatique | Ces sites interdisent les robots (robots.txt, conditions d'utilisation) |
+| Pages front (V2) | Chargées à la demande (`React.lazy`) | Le premier chargement passe sous la barre des 500 kB |
 
-## Limites connues et pistes pour la V2
+## Limites connues
 
 - Les organismes ajoutés par un utilisateur sont visibles par tous : un contact erroné pourrait être réutilisé
   (ils sont signalés « Ajouté par un utilisateur » ; une modération serait nécessaire à plus grande échelle).
-- V2 prévue : recherche automatique des pages qui mentionnent l'utilisateur.
+- Le scanner ne voit que ce que le registre des entreprises et SearXNG indexent : un résultat absent ne prouve pas que
+  les données ne sont publiées nulle part. Les homonymes restent possibles, d'où la confirmation manuelle.
+- La vérification de l'effacement compare le texte de la page : une donnée affichée en image ou chargée en JavaScript
+  n'est pas détectée (le résultat est alors « absent » ; l'utilisateur garde la main).
