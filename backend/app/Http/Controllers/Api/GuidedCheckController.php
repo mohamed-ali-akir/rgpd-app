@@ -29,6 +29,9 @@ class GuidedCheckController extends Controller
         $name = Identity::forUser($request->user())->fullName();
 
         $checks = Organization::query()
+            // Liste de référence seulement (seeder) : un organisme ajouté par un utilisateur
+            // (nom ou domaine non contrôlés) n'est pas proposé à tous les autres.
+            ->whereNull('created_by')
             ->whereIn('category', self::CATEGORIES)
             ->orderBy('category')
             ->orderBy('name')

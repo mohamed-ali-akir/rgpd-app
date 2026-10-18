@@ -180,6 +180,8 @@ it('propose des vérifications guidées sans contacter les sites', function () {
     organization(['name' => 'Le Monde', 'domain' => 'lemonde.fr', 'category' => OrganizationCategory::Press]);
     $user = User::factory()->create();
     $user->profile->update(['first_name' => 'Camille', 'last_name' => 'Martin']);
+    // Ajouté par un utilisateur : pas dans la liste de référence, donc jamais proposé aux autres.
+    organization(['name' => 'Annuaire ajouté', 'domain' => 'ajoute.fr', 'category' => OrganizationCategory::Directory, 'created_by' => User::factory()->create()->id]);
 
     $this->actingAs($user)->getJson('/api/guided-checks')
         ->assertOk()
