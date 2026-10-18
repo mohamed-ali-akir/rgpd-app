@@ -37,6 +37,13 @@ class SendErasureRequestJob implements ShouldBeUnique, ShouldQueue
     public array $backoff = [60, 300];
 
     /**
+     * Demande (ou compte) supprimée avant que le worker ne traite le job : le modèle ne peut plus
+     * être relu depuis la file. Sans cette option, le job échouait sur une ModelNotFoundException
+     * et finissait dans failed_jobs ; avec, il est simplement abandonné.
+     */
+    public bool $deleteWhenMissingModels = true;
+
+    /**
      * SerializesModels (inclus dans Queueable) ne stocke que l'id de la demande dans la file,
      * pas son contenu : aucune donnée personnelle dans la table "jobs".
      */

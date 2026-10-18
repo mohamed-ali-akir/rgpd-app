@@ -21,6 +21,9 @@ class VerifyErasureJob implements ShouldBeUnique, ShouldQueue
 
     public int $timeout = 90;
 
+    /** Demande ou compte supprimé avant le passage du worker : le job est abandonné sans erreur. */
+    public bool $deleteWhenMissingModels = true;
+
     public function __construct(
         public ErasureRequest $erasureRequest,
         public bool $manual = false,
