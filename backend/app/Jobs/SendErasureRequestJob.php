@@ -33,6 +33,7 @@ class SendErasureRequestJob implements ShouldBeUnique, ShouldQueue
     /** 3 essais, espacés de 1 min puis 5 min. */
     public int $tries = 3;
 
+    /** @var list<int> */
     public array $backoff = [60, 300];
 
     /**

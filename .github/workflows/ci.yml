@@ -31,6 +31,8 @@ jobs:
       - run: cp .env.example .env && php artisan key:generate
       - name: Style (Pint)
         run: vendor/bin/pint --test
+      - name: Analyse statique (Larastan, niveau 6)
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
       - name: Tests (SQLite en mémoire)
         run: vendor/bin/pest
 

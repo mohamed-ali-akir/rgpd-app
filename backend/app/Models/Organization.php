@@ -10,9 +10,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * Le « responsable de traitement » : l'organisme qui gère le site.
+ *
+ * @property int $id
+ * @property string $name
+ * @property string $domain
+ * @property OrganizationCategory $category
+ * @property string|null $privacy_email
+ * @property string|null $privacy_form_url
+ * @property string|null $dpo_name
+ * @property Carbon|null $verified_at
+ * @property int|null $created_by
  */
 #[Fillable(['name', 'domain', 'category', 'privacy_email', 'privacy_form_url', 'dpo_name'])]
 class Organization extends Model

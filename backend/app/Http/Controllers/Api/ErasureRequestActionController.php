@@ -17,6 +17,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\RateLimiter;
+use LogicException;
 
 /**
  * Actions qui font avancer une demande dans la machine à états.
@@ -86,13 +87,15 @@ class ErasureRequestActionController extends Controller
     {
         $payload = array_filter(['note' => $request->input('note')]);
 
-        match ($request->input('outcome')) {
+        match ($request->string('outcome')->toString()) {
             'accepted' => $erasureRequest->transitionTo(RequestStatus::Accepted, [], $payload),
             'refused' => $erasureRequest->transitionTo(RequestStatus::Refused, [], $payload),
             // Prolongation annoncée : le délai passe à 3 mois après l'envoi (art. 12.3).
             'extended' => $erasureRequest->transitionTo(RequestStatus::Extended, [
-                'due_at' => $deadlines->extendedDueAt($erasureRequest->sent_at),
+                'due_at' => $deadlines->extendedDueAt($erasureRequest->sent_at ?? throw new LogicException('Demande prolongée sans date d\'envoi.')),
             ], $payload),
+            // Inatteignable : StoreResponseRequest n'accepte que les valeurs ci-dessus.
+            default => throw new LogicException('Réponse inconnue.'),
         };
 
         return $this->detail($erasureRequest);

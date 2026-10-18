@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\URL;
 
 class VerifyEmail extends Notification
 {
+    /** @return list<string> */
     public function via(object $notifiable): array
     {
         return ['mail'];

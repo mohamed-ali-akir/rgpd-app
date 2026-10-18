@@ -17,6 +17,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Prunable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use LogicException;
 
@@ -25,6 +27,24 @@ use LogicException;
  *
  * "status", "sent_at" et "due_at" ne sont volontairement PAS dans Fillable :
  * ils ne changent que via transitionTo().
+ *
+ * @property int $id
+ * @property int $user_id
+ * @property int $organization_id
+ * @property string $url
+ * @property Collection<int, DataType> $data_types
+ * @property Collection<int, LegalGround> $legal_grounds
+ * @property Channel $channel
+ * @property RequestStatus $status
+ * @property string $subject
+ * @property string $body
+ * @property Carbon|null $sent_at
+ * @property Carbon|null $due_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ * @property-read User $user
+ * @property-read Organization $organization
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, RequestEvent> $events
  */
 #[Fillable(['organization_id', 'url', 'data_types', 'legal_grounds', 'channel', 'subject', 'body'])]
 class ErasureRequest extends Model

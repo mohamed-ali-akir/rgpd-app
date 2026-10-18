@@ -7,6 +7,7 @@ use Illuminate\Validation\Rule;
 
 class StoreResponseRequest extends FormRequest
 {
+    /** @return array<string, mixed> */
     public function rules(): array
     {
         return [

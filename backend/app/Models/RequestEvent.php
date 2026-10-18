@@ -6,10 +6,17 @@ use App\Enums\EventType;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 use LogicException;
 
 /**
  * Une ligne de l'historique d'une demande. Ajout seul : jamais modifiée.
+ *
+ * @property int $id
+ * @property int $erasure_request_id
+ * @property EventType $type
+ * @property array<string, mixed>|null $payload
+ * @property Carbon $occurred_at
  */
 #[Fillable(['type', 'payload', 'occurred_at'])]
 class RequestEvent extends Model

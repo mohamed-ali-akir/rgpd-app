@@ -11,6 +11,7 @@ use Illuminate\Validation\Validator;
 
 class StoreErasureRequestRequest extends FormRequest
 {
+    /** @return array<string, mixed> */
     public function rules(): array
     {
         return [
@@ -29,6 +30,8 @@ class StoreErasureRequestRequest extends FormRequest
 
     /**
      * Règle qui dépend de plusieurs champs : le canal Gmail exige une adresse e-mail de contact.
+     *
+     * @return list<\Closure>
      */
     public function after(): array
     {

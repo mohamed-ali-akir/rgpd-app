@@ -1,0 +1,14 @@
+# Analyse statique (Larastan = PHPStan + connaissance de Laravel).
+# Détecte avant l'exécution : méthodes inexistantes, mauvais types, propriétés mal nommées…
+# Lancer : vendor/bin/phpstan analyse
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app
+        - routes
+        - database/factories
+        - database/seeders
+    level: 6
+    tmpDir: storage/phpstan

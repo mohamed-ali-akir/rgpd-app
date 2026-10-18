@@ -8,6 +8,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\AbstractProvider;
+use Laravel\Socialite\Two\User as GoogleUser;
+use LogicException;
 use Throwable;
 
 /**
@@ -20,7 +23,13 @@ class GoogleAccountController extends Controller
 
     public function redirect(): RedirectResponse
     {
-        return Socialite::driver('google')
+        $provider = Socialite::driver('google');
+        // Socialite renvoie un type générique : on vérifie qu'il s'agit bien d'un fournisseur OAuth 2.
+        if (! $provider instanceof AbstractProvider) {
+            throw new LogicException('Le fournisseur Google configuré n\'est pas un fournisseur OAuth 2.');
+        }
+
+        return $provider
             ->scopes([self::GMAIL_SEND_SCOPE])
             // offline : Google renvoie un refresh token (pour envoyer plus tard, ex. une relance).
             // consent : force l'écran d'accord, sinon Google ne renvoie le refresh token qu'une fois.
@@ -40,9 +49,12 @@ class GoogleAccountController extends Controller
         } catch (Throwable) {
             return redirect('/settings?google=error');
         }
+        if (! $googleUser instanceof GoogleUser) {
+            return redirect('/settings?google=error');
+        }
 
         // Google permet de décocher un scope sur l'écran d'accord : on vérifie qu'on a bien gmail.send.
-        $scopes = $googleUser->approvedScopes ?? [];
+        $scopes = $googleUser->approvedScopes;
         if (! in_array(self::GMAIL_SEND_SCOPE, $scopes, true) || ! $googleUser->refreshToken) {
             return redirect('/settings?google=missing_scope');
         }

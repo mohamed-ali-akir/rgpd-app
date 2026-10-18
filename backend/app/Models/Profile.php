@@ -11,6 +11,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Identité de l'utilisateur, utilisée pour remplir les lettres.
  * Toutes les colonnes sont chiffrées en base avec APP_KEY (cast "encrypted").
+ *
+ * @property int $id
+ * @property int $user_id
+ * @property string $first_name
+ * @property string $last_name
+ * @property string|null $postal_address
+ * @property string|null $phone
+ * @property-read User $user
  */
 #[Fillable(['first_name', 'last_name', 'postal_address', 'phone'])]
 class Profile extends Model

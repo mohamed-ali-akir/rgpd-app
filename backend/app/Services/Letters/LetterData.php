@@ -45,7 +45,7 @@ final readonly class LetterData
             firstName: $profile->first_name,
             lastName: $profile->last_name,
             // Adresse d'envoi : celle de Gmail si connecté, sinon celle du compte.
-            email: $user->googleAccount?->email ?? $user->email,
+            email: $user->googleAccount->email ?? $user->email,
             postalAddress: $profile->postal_address,
             phone: $profile->phone,
             organizationName: $organization->name,

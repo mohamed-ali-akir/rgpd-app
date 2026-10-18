@@ -14,6 +14,7 @@ use Illuminate\Validation\Validator;
  */
 class UpdateErasureRequestRequest extends FormRequest
 {
+    /** @return array<string, mixed> */
     public function rules(): array
     {
         return [
@@ -29,6 +30,7 @@ class UpdateErasureRequestRequest extends FormRequest
         ];
     }
 
+    /** @return list<\Closure> */
     public function after(): array
     {
         return [

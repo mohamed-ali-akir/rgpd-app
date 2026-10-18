@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\OrganizationCategory as C;
 use App\Models\Organization;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 
 /**
  * Organismes français fréquents.
@@ -84,7 +85,7 @@ class OrganizationSeeder extends Seeder
                 'dpo_name' => $org['dpo_name'] ?? null,
             ]);
             // verified_at n'est pas "fillable" : seul ce seeder (vérification humaine) le renseigne.
-            $organization->verified_at = $org['verified'] ?? null;
+            $organization->verified_at = isset($org['verified']) ? Carbon::parse($org['verified']) : null;
             $organization->save();
         }
     }

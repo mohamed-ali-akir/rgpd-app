@@ -13,6 +13,7 @@ class ResetPassword extends Notification
 {
     public function __construct(public string $token) {}
 
+    /** @return list<string> */
     public function via(object $notifiable): array
     {
         return ['mail'];

@@ -18,6 +18,7 @@ class DeadlinePassed extends Notification implements ShouldQueue
 
     public function __construct(public ErasureRequest $erasureRequest) {}
 
+    /** @return list<string> */
     public function via(object $notifiable): array
     {
         return ['mail'];
