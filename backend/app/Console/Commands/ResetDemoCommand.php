@@ -14,6 +14,8 @@ use App\Enums\VerificationStatus;
 use App\Models\ErasureRequest;
 use App\Models\Organization;
 use App\Models\User;
+use App\Services\Demo\DemoScanSource;
+use App\Services\Scanner\FindingRecorder;
 use App\Services\Scanner\Scanner;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -37,7 +39,7 @@ class ResetDemoCommand extends Command
         ['name' => 'Journal Démo', 'domain' => 'journal-demo.example', 'category' => OrganizationCategory::Press, 'privacy_email' => 'rgpd@journal-demo.example'],
     ];
 
-    public function handle(CreateDraftRequest $createDraft, Scanner $scanner): int
+    public function handle(CreateDraftRequest $createDraft, DemoScanSource $demoSource, FindingRecorder $recorder): int
     {
         if (! config('app.demo') && ! $this->option('force')) {
             $this->error('Mode démo désactivé (APP_DEMO=false). Utilisez --force en développement.');
@@ -51,7 +53,12 @@ class ResetDemoCommand extends Command
             $this->createRequests($user, $organizations, $createDraft);
         });
 
-        // Le scan de démo n'utilise que des données fictives (DemoScanSource) : aucun accès réseau.
+        /*
+         * Scanner construit ici avec la seule source fictive, et non résolu par le conteneur :
+         * avec --force hors mode démo, le conteneur fournirait les sources réelles (API, moteur)
+         * et lancerait une vraie recherche au nom du compte fictif. Ici : aucun accès réseau, toujours.
+         */
+        $scanner = new Scanner([$demoSource], $recorder);
         $user = User::where('email', config('app.demo_email'))->firstOrFail();
         $scanner->run($user->scans()->create(['trigger' => ScanTrigger::Manual]));
 

@@ -94,6 +94,16 @@ it('envoie une demande de démo sans rien envoyer pour de vrai', function () {
     Http::assertNothingSent();
 });
 
+it("avec --force hors mode démo, n'utilise que les données fictives (aucune vraie recherche)", function () {
+    config(['app.demo' => false, 'scanner.search.provider' => 'fake']);
+    Http::fake();
+
+    $this->artisan('demo:reset', ['--force' => true])->assertSuccessful();
+
+    Http::assertNothingSent();
+    expect(User::where('email', 'demo@example.test')->sole()->findings()->count())->toBe(4);
+});
+
 it('refuse de réinitialiser hors mode démo sans --force', function () {
     config(['app.demo' => false]);
 
