@@ -13,7 +13,8 @@ User=www-data
 Group=www-data
 WorkingDirectory=/var/www/rgpd-app/backend
 # --max-time : le worker redémarre toutes les heures (libère la mémoire) ; systemd le relance.
-ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+# --timeout=650 : un scan peut durer jusqu'à 600 s (RunScanJob) ; DB_QUEUE_RETRY_AFTER=700 dans le .env.
+ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=3 --timeout=650 --max-time=3600
 Restart=always
 RestartSec=5
 

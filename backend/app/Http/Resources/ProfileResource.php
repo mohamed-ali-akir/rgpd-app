@@ -18,6 +18,7 @@ class ProfileResource extends JsonResource
             'last_name' => $this->last_name,
             'postal_address' => $this->postal_address,
             'phone' => $this->phone,
+            'auto_scan' => (bool) $this->auto_scan,
         ];
     }
 }

@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DeleteAccountRequest;
 use App\Http\Resources\ErasureRequestResource;
+use App\Http\Resources\FindingResource;
 use App\Http\Resources\OrganizationResource;
 use App\Http\Resources\ProfileResource;
+use App\Http\Resources\ScanResource;
 use App\Models\Organization;
 use App\Services\Mail\GoogleTokenRevoker;
 use Illuminate\Http\JsonResponse;
@@ -46,6 +48,9 @@ class AccountController extends Controller
             ] : null,
             'erasure_requests' => ErasureRequestResource::collection($requests),
             'organizations_created' => OrganizationResource::collection(Organization::where('created_by', $user->id)->get()),
+            // V2 : recherches et résultats du scanner (déchiffrés pour l'export).
+            'scans' => ScanResource::collection($user->scans()->latest()->get()),
+            'findings' => FindingResource::collection($user->findings()->with('organization')->get()),
         ];
 
         return response()->json($data, 200, [

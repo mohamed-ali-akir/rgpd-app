@@ -18,9 +18,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $last_name
  * @property string|null $postal_address
  * @property string|null $phone
+ * @property bool $auto_scan
  * @property-read User $user
  */
-#[Fillable(['first_name', 'last_name', 'postal_address', 'phone'])]
+#[Fillable(['first_name', 'last_name', 'postal_address', 'phone', 'auto_scan'])]
 class Profile extends Model
 {
     /** @use HasFactory<ProfileFactory> */
@@ -33,6 +34,7 @@ class Profile extends Model
             'last_name' => 'encrypted',
             'postal_address' => 'encrypted',
             'phone' => 'encrypted',
+            'auto_scan' => 'boolean',
         ];
     }
 

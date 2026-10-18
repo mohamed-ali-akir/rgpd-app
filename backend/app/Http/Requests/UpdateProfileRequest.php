@@ -15,6 +15,8 @@ class UpdateProfileRequest extends FormRequest
             // Facultatifs (minimisation des données) : utilisés seulement dans l'en-tête des lettres.
             'postal_address' => ['nullable', 'string', 'max:500'],
             'phone' => ['nullable', 'string', 'max:30'],
+            // Scan mensuel automatique de ses données publiques (consentement explicite, désactivé par défaut).
+            'auto_scan' => ['sometimes', 'boolean'],
         ];
     }
 }

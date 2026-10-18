@@ -36,6 +36,8 @@ return [
         'monthly_limit' => (int) env('SCANNER_MONTHLY_LIMIT', 4),
         // Nombre maximal de pages relues pour confirmer un résultat de recherche.
         'max_pages_fetched' => (int) env('SCANNER_MAX_PAGES', 15),
+        // Durée maximale passée à relire des pages ; au-delà, on se contente des extraits du moteur.
+        'time_budget_seconds' => (int) env('SCANNER_TIME_BUDGET', 240),
         // Un résultat seulement vu dans l'extrait (page non relue) perd une partie de sa confiance.
         'unverified_confidence_factor' => 0.7,
         // Résultats sous ce seuil ignorés (bruit).

@@ -12,6 +12,9 @@ Schedule::command('requests:check-deadlines')->dailyAt('08:00')->timezone(config
 // Vérification que les effacements acceptés ont vraiment eu lieu (lecture des pages par le worker).
 Schedule::command('requests:verify-erasures')->dailyAt('09:00')->timezone(config('app.display_timezone'))->withoutOverlapping();
 
+// Scans mensuels automatiques (utilisateurs qui les ont activés dans leur profil).
+Schedule::command('scans:run-scheduled')->dailyAt('10:00')->timezone(config('app.display_timezone'))->withoutOverlapping();
+
 // Conservation limitée : suppression des demandes clôturées depuis plus de 12 mois
 // (voir ErasureRequest::prunable()).
 Schedule::command('model:prune')->daily();

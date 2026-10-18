@@ -6,10 +6,14 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\ErasureRequestActionController;
 use App\Http\Controllers\Api\ErasureRequestController;
+use App\Http\Controllers\Api\FindingController;
+use App\Http\Controllers\Api\FindingRequestController;
 use App\Http\Controllers\Api\GoogleAccountController;
+use App\Http\Controllers\Api\GuidedCheckController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\ScanController;
 use Illuminate\Support\Facades\Route;
 
 // Toutes ces routes sont préfixées par /api (voir bootstrap/app.php).
@@ -66,6 +70,15 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/close', 'close');
             Route::post('/verify', 'verify');
         });
+
+    // Scanner (V2) : recherche des données publiques du titulaire du compte.
+    Route::get('/scans', [ScanController::class, 'index']);
+    Route::post('/scans', [ScanController::class, 'store']);
+    Route::get('/scans/{scan}', [ScanController::class, 'show'])->can('view', 'scan');
+    Route::get('/findings', [FindingController::class, 'index']);
+    Route::patch('/findings/{finding}', [FindingController::class, 'update'])->can('update', 'finding');
+    Route::post('/findings/requests', [FindingRequestController::class, 'store']);
+    Route::get('/guided-checks', GuidedCheckController::class);
 
     Route::delete('/google-account', [GoogleAccountController::class, 'destroy']);
     Route::delete('/me', [AccountController::class, 'destroy']);

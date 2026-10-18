@@ -56,6 +56,18 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(ErasureRequest::class);
     }
 
+    /** @return HasMany<Scan, $this> */
+    public function scans(): HasMany
+    {
+        return $this->hasMany(Scan::class);
+    }
+
+    /** @return HasMany<Finding, $this> */
+    public function findings(): HasMany
+    {
+        return $this->hasMany(Finding::class);
+    }
+
     /** @return HasOne<GoogleAccount, $this> */
     public function googleAccount(): HasOne
     {

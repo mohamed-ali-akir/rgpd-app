@@ -5,6 +5,13 @@ namespace App\Providers;
 use App\Services\Mail\FakeSender;
 use App\Services\Mail\GmailSender;
 use App\Services\Mail\MailSender;
+use App\Services\Scanner\Scanner;
+use App\Services\Scanner\Sources\CompanyRegistrySource;
+use App\Services\Scanner\Sources\WebSearchSource;
+use App\Services\Search\FakeSearchProvider;
+use App\Services\Search\NullSearchProvider;
+use App\Services\Search\SearchProvider;
+use App\Services\Search\SearxngSearchProvider;
 use App\Services\Web\DnsHostResolver;
 use App\Services\Web\HostResolver;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -26,6 +33,17 @@ class AppServiceProvider extends ServiceProvider
 
         // Résolution DNS réelle ; les tests la remplacent par une table fixe (aucun accès réseau).
         $this->app->bind(HostResolver::class, DnsHostResolver::class);
+
+        // Moteur de recherche du scanner, choisi par SEARCH_PROVIDER (aucun par défaut).
+        $this->app->singleton(SearchProvider::class, fn () => match (config('scanner.search.provider')) {
+            'searxng' => new SearxngSearchProvider(config('scanner.search.searxng_url')),
+            'fake' => new FakeSearchProvider,
+            default => new NullSearchProvider,
+        });
+
+        // Sources du scanner : ajouter une source = ajouter sa classe ici.
+        $this->app->tag([CompanyRegistrySource::class, WebSearchSource::class], 'scanner.sources');
+        $this->app->when(Scanner::class)->needs('$sources')->giveTagged('scanner.sources');
     }
 
     public function boot(): void
