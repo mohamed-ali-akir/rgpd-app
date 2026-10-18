@@ -34,6 +34,8 @@ return [
     'scan' => [
         // Scans lancés à la main par utilisateur sur 30 jours glissants.
         'monthly_limit' => (int) env('SCANNER_MONTHLY_LIMIT', 4),
+        // En démo, le compte est partagé par tous les visiteurs (et réinitialisé chaque nuit).
+        'demo_monthly_limit' => 50,
         // Nombre maximal de pages relues pour confirmer un résultat de recherche.
         'max_pages_fetched' => (int) env('SCANNER_MAX_PAGES', 15),
         // Durée maximale passée à relire des pages ; au-delà, on se contente des extraits du moteur.

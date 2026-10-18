@@ -72,6 +72,14 @@ return [
     'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Europe/Paris'),
 
     /*
+     * Mode démo (mise en ligne publique pour un CV) : aucun envoi réel, scanner sur données fictives,
+     * inscription et Gmail désactivés, compte de démo réinitialisé chaque nuit (demo:reset).
+     */
+    'demo' => (bool) env('APP_DEMO', false),
+    'demo_email' => 'demo@example.test',
+    'demo_password' => 'demo-efface-moi',
+
+    /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------

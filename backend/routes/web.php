@@ -17,8 +17,8 @@ use Illuminate\Support\Facades\Route;
  * On y range donc toutes les routes atteintes par navigation (liens, redirections).
  */
 Route::prefix('api')->middleware('auth')->group(function () {
-    Route::get('/auth/google/redirect', [GoogleAccountController::class, 'redirect']);
-    Route::get('/auth/google/callback', [GoogleAccountController::class, 'callback']);
+    Route::get('/auth/google/redirect', [GoogleAccountController::class, 'redirect'])->middleware('not-in-demo');
+    Route::get('/auth/google/callback', [GoogleAccountController::class, 'callback'])->middleware('not-in-demo');
 
     Route::get('/requests/{erasureRequest}/complaint.pdf', ComplaintController::class)->can('view', 'erasureRequest');
     Route::get('/me/export', [AccountController::class, 'export']);

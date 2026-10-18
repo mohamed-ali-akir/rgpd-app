@@ -42,7 +42,7 @@ class ScanController extends Controller
         try {
             abort_if($user->scans()->active()->exists(), 409, 'Une recherche est déjà en cours.');
 
-            $limit = (int) config('scanner.scan.monthly_limit');
+            $limit = (int) config(config('app.demo') ? 'scanner.scan.demo_monthly_limit' : 'scanner.scan.monthly_limit');
             $recent = $user->scans()
                 ->where('trigger', ScanTrigger::Manual)
                 ->where('created_at', '>=', now()->subDays(30))

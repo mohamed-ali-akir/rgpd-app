@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\FindingController;
 use App\Http\Controllers\Api\FindingRequestController;
 use App\Http\Controllers\Api\GoogleAccountController;
 use App\Http\Controllers\Api\GuidedCheckController;
+use App\Http\Controllers\Api\MetaController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ProfileController;
@@ -20,11 +21,14 @@ use Illuminate\Support\Facades\Route;
 
 // --- Invités ---------------------------------------------------------------
 // Limiteur "guest-forms" (AppServiceProvider) : 6 essais par minute et par formulaire, contre la force brute.
+// Public : mode démo et identifiants de démonstration.
+Route::get('/meta', MetaController::class);
+
 Route::middleware('throttle:guest-forms')->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/register', [AuthController::class, 'register'])->middleware('not-in-demo');
     Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/forgot-password', [PasswordResetController::class, 'sendLink']);
-    Route::post('/reset-password', [PasswordResetController::class, 'reset']);
+    Route::post('/forgot-password', [PasswordResetController::class, 'sendLink'])->middleware('not-in-demo');
+    Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middleware('not-in-demo');
 });
 
 Route::get('/email/verify/{user}/{hash}', [EmailVerificationController::class, 'verify'])
@@ -80,8 +84,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/findings/requests', [FindingRequestController::class, 'store']);
     Route::get('/guided-checks', GuidedCheckController::class);
 
-    Route::delete('/google-account', [GoogleAccountController::class, 'destroy']);
-    Route::delete('/me', [AccountController::class, 'destroy']);
+    Route::delete('/google-account', [GoogleAccountController::class, 'destroy'])->middleware('not-in-demo');
+    Route::delete('/me', [AccountController::class, 'destroy'])->middleware('not-in-demo');
 });
 
 // Les routes ouvertes par une NAVIGATION du navigateur (redirection OAuth, téléchargements)

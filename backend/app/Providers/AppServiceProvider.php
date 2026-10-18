@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\Demo\DemoScanSource;
 use App\Services\Mail\FakeSender;
 use App\Services\Mail\GmailSender;
 use App\Services\Mail\MailSender;
@@ -26,7 +27,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Le code dépend de l'interface MailSender ; le conteneur fournit l'implémentation.
         // Singleton : dans un test, on récupère la même FakeSender pour vérifier ce qui a été "envoyé".
-        $this->app->singleton(MailSender::class, fn () => match (config('services.mail_sender')) {
+        // En démo, jamais d'envoi réel, quelle que soit la configuration.
+        $this->app->singleton(MailSender::class, fn () => match (config('app.demo') ? 'fake' : config('services.mail_sender')) {
             'gmail' => new GmailSender,
             default => new FakeSender,
         });
@@ -41,9 +43,10 @@ class AppServiceProvider extends ServiceProvider
             default => new NullSearchProvider,
         });
 
-        // Sources du scanner : ajouter une source = ajouter sa classe ici.
-        $this->app->tag([CompanyRegistrySource::class, WebSearchSource::class], 'scanner.sources');
-        $this->app->when(Scanner::class)->needs('$sources')->giveTagged('scanner.sources');
+        // Sources du scanner : ajouter une source = ajouter sa classe ici. En démo : données fictives uniquement.
+        $this->app->when(Scanner::class)->needs('$sources')->give(fn ($app) => config('app.demo')
+            ? [$app->make(DemoScanSource::class)]
+            : [$app->make(CompanyRegistrySource::class), $app->make(WebSearchSource::class)]);
     }
 
     public function boot(): void

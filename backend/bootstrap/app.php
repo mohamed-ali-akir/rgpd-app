@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\InvalidTransitionException;
+use App\Http\Middleware\BlockInDemo;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,6 +22,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Visiteur non connecté sur une route "auth" de web.php : on le renvoie vers la page React.
         $middleware->redirectGuestsTo('/login');
+
+        // Routes désactivées en mode démo (inscription, Gmail, suppression du compte de démo…).
+        $middleware->alias(['not-in-demo' => BlockInDemo::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

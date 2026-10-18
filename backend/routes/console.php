@@ -15,6 +15,11 @@ Schedule::command('requests:verify-erasures')->dailyAt('09:00')->timezone(config
 // Scans mensuels automatiques (utilisateurs qui les ont activés dans leur profil).
 Schedule::command('scans:run-scheduled')->dailyAt('10:00')->timezone(config('app.display_timezone'))->withoutOverlapping();
 
+// Mode démo : le compte de démonstration repart d'un état propre chaque nuit.
+if (config('app.demo')) {
+    Schedule::command('demo:reset')->dailyAt('03:00')->timezone(config('app.display_timezone'));
+}
+
 // Conservation limitée : suppression des demandes clôturées depuis plus de 12 mois
 // (voir ErasureRequest::prunable()).
 Schedule::command('model:prune')->daily();
