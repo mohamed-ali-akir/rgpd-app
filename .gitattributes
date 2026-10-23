@@ -3,3 +3,5 @@
 deploy/crontab text eol=lf
 deploy/*.service text eol=lf
 deploy/nginx.conf text eol=lf
+deploy/alwaysdata/.htaccess text eol=lf
+deploy/alwaysdata/.env.demo.example text eol=lf

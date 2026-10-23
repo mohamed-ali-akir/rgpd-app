@@ -1,4 +1,5 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import { apiPath } from '../lib/basePath'
 
 /**
  * Instance axios partagée par tous les appels à l'API.
@@ -8,7 +9,7 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
  * XSRF-TOKEN dans l'en-tête X-XSRF-TOKEN (withXSRFToken) pour la protection CSRF.
  */
 export const api = axios.create({
-  baseURL: '/api',
+  baseURL: apiPath('/api'),
   withCredentials: true,
   withXSRFToken: true,
   headers: {
@@ -22,7 +23,7 @@ export const api = axios.create({
  * ou l'inscription (aucun cookie n'existe encore à ce moment-là).
  */
 export async function ensureCsrfCookie(): Promise<void> {
-  await axios.get('/sanctum/csrf-cookie', { withCredentials: true })
+  await axios.get(apiPath('/sanctum/csrf-cookie'), { withCredentials: true })
 }
 
 type RetriableConfig = InternalAxiosRequestConfig & { _csrfRetried?: boolean }

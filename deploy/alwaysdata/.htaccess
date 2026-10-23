@@ -1,0 +1,45 @@
+# Démo sur alwaysdata : remplace backend/public/.htaccess dans le paquet de déploiement.
+# alwaysdata sert le site akir.alwaysdata.net/efface-moi par un Alias Apache vers ~/efface-moi/public :
+# Apache reçoit l'adresse complète (/efface-moi/api/me), d'où le RewriteBase ci-dessous.
+# (Ne pas cocher « Exclure le chemin » : le chemin serait retiré avant Apache, qui servirait alors StagePilot.)
+#
+# Même rôle que deploy/nginx.conf : /api et /sanctum vers Laravel, fichiers existants servis tels quels,
+# tout le reste vers index.html (le routeur React gère l'adresse).
+
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+    RewriteBase /efface-moi/
+
+    # En-têtes Authorization et X-XSRF-Token transmis à PHP (repris du .htaccess de Laravel)
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+    # API, Sanctum et contrôle de santé → Laravel (chemins relatifs à /efface-moi/)
+    RewriteRule ^(api|sanctum)(/|$) index.php [L]
+    RewriteRule ^up$ index.php [L]
+
+    # Fichier existant (build React, favicon…) → servi directement
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    # Toute autre adresse → l'application React
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+# Fichiers du build : leur nom contient une empreinte, ils peuvent être gardés en cache longtemps.
+<IfModule mod_headers.c>
+    <If "%{REQUEST_URI} =~ m#/assets/#">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </If>
+    <Files "index.html">
+        Header set Cache-Control "no-cache"
+    </Files>
+</IfModule>

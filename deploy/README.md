@@ -11,6 +11,7 @@ Fichiers de ce dossier :
 | `rgpd-queue.service` | Worker de la file d'attente (envois Gmail, scans, vérifications), relancé par systemd ; `--timeout=650` car un scan peut durer 10 min |
 | `crontab` | La ligne de cron qui lance le planificateur Laravel chaque minute |
 | `deploy.sh` | Mise à jour : `git pull`, dépendances, migrations, caches, build du front |
+| `alwaysdata/` | Variante pour la démo publique sur l'offre gratuite d'alwaysdata, dans un sous-dossier (voir son README) |
 | `../backend/.env.production.example` | Modèle du `.env` de production |
 
 ## 1. Paquets

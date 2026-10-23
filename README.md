@@ -1,6 +1,6 @@
 # Efface-moi — exercer son droit à l'effacement (RGPD)
 
-[![CI](https://github.com/mohamed-ali-akir/rgpd-app/actions/workflows/ci.yml/badge.svg)](https://github.com/mohamed-ali-akir/rgpd-app/actions/workflows/ci.yml)
+[![CI](https://github.com/mohamed-ali-akir/efface-moi/actions/workflows/ci.yml/badge.svg)](https://github.com/mohamed-ali-akir/efface-moi/actions/workflows/ci.yml)
 
 Application web full stack qui aide une personne à obtenir la suppression de ses données personnelles publiées en ligne :
 elle colle l'adresse de la page, l'application identifie l'organisme responsable, génère une demande d'effacement
@@ -174,6 +174,8 @@ En local : `php artisan demo:reset --force` crée ces données sans activer le m
 
 Le guide pas à pas (VPS Ubuntu, Nginx, PHP-FPM, MySQL, HTTPS, worker, cron, sauvegardes) est dans
 [deploy/README.md](deploy/README.md), avec le modèle [backend/.env.production.example](backend/.env.production.example).
+La démo publique, sur l'offre gratuite d'alwaysdata et dans un sous-dossier (`/efface-moi`), a son propre guide :
+[deploy/alwaysdata/README.md](deploy/alwaysdata/README.md).
 En résumé :
 
 - Nginx : voir [deploy/nginx.conf](deploy/nginx.conf) (SPA à la racine, `/api` et `/sanctum` vers PHP-FPM).
